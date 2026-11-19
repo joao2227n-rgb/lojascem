@@ -1,0 +1,7 @@
+# Documentos do TCC ficam fora do repositório público
+*.pptx
+*.docx
+*.pdf
+
+# Configuração local do editor
+.claude/

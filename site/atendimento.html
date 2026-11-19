@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Atendimento - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="atendimento">
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo" style="max-width:1500px">
+    <nav class="breadcrumb" aria-label="Trilha"><a href="index.html">Início</a> &nbsp;/&nbsp; <span aria-current="page">Atendimento</span></nav>
+    <div class="help">
+      <div>
+        <h1>Como podemos ajudar?</h1>
+        <p class="lead">Selecione um dos assuntos ou converse com o nosso assistente virtual.</p>
+        <div class="topics">
+          <button class="topic" data-q="pedido"><span data-icon="box"></span><div><strong>Acompanhar pedido</strong><span>Consulte o status e veja onde está sua compra.</span></div><span data-icon="chevronRight" data-cls="chev"></span></button>
+          <button class="topic" data-q="entrega"><span data-icon="truck"></span><div><strong>Entrega e retirada</strong><span>Prazos, frete e retirada em loja.</span></div><span data-icon="chevronRight" data-cls="chev"></span></button>
+          <button class="topic" data-q="troca"><span data-icon="refresh"></span><div><strong>Trocas e devoluções</strong><span>Saiba como solicitar uma troca ou devolução.</span></div><span data-icon="chevronRight" data-cls="chev"></span></button>
+          <button class="topic" data-q="pagamento"><span data-icon="card"></span><div><strong>Pagamentos</strong><span>Formas de pagamento, parcelas e carnê.</span></div><span data-icon="chevronRight" data-cls="chev"></span></button>
+        </div>
+        <button class="btn btn-outline btn-lg btn-block" data-q="humano"><span data-icon="headset"></span> Falar com uma pessoa <span data-icon="chevronRight"></span></button>
+        <p class="muted" style="text-align:center;margin-top:12px">Assistente virtual proposto para o TCC.</p>
+      </div>
+
+      <section class="card chat" aria-label="Assistente virtual">
+        <div class="chat-head"><span data-icon="chat"></span><span><strong id="chat-who">Assistente virtual</strong> • Demonstração</span></div>
+        <div class="chat-log" id="log" aria-live="polite"></div>
+        <form class="chat-form" id="chat-form">
+          <label for="msg" class="sr-only">Mensagem</label>
+          <input id="msg" placeholder="Digite sua mensagem" autocomplete="off" maxlength="300">
+          <button aria-label="Enviar"><span data-icon="send"></span></button>
+        </form>
+      </section>
+    </div>
+
+    <section class="faq">
+      <h2>Perguntas frequentes</h2>
+      <div id="faq"></div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    fillIcons();
+
+    function lastOrderAnswer() {
+      const u = User.get();
+      const o = u && Orders.all().find((x) => x.cliente.email.toLowerCase() === u.email.toLowerCase());
+      if (!u) return 'Para consultar seus pedidos, entre na sua conta em Minha conta. Depois é só me perguntar de novo!';
+      if (!o) return 'Não encontrei pedidos na sua conta. Assim que você comprar, eu mostro o status aqui.';
+      return `Seu último pedido, ${o.id}, está com status "${Orders.status(o)}". Veja os detalhes em Minha conta > Meus pedidos.`;
+    }
+
+    const ANSWERS = {
+      pedido: { q: 'Quero acompanhar meu pedido.', a: lastOrderAnswer },
+      entrega: { q: 'Como funciona a entrega?', a: () => 'O frete depende da região do CEP: SP a partir de R$ 39,90 (2 a 4 dias úteis), MG R$ 49,90, RJ/ES e PR/SC R$ 59,90. A retirada em loja é grátis, em até 2 dias úteis.' },
+      retirada: { q: '', a: () => 'Sim! No checkout escolha "Retirar em loja" e selecione a unidade. A retirada é gratuita e fica disponível em até 2 dias úteis.' },
+      troca: { q: 'Como faço uma troca?', a: () => 'Você pode pedir troca ou devolução em até 7 dias após o recebimento. Leve o produto com a nota fiscal a uma loja ou fale com um atendente.' },
+      pagamento: { q: 'Quais as formas de pagamento?', a: () => 'Pix com 5% de desconto, cartão de crédito em até 10x sem juros ou carnê digital em até 10x, sujeito à análise de crédito.' },
+      carne: { q: '', a: () => 'O carnê digital fica em Minha conta > Carnê digital. Lá você vê as parcelas, o saldo restante e pode pagar a parcela em aberto (simulado).' },
+      cupom: { q: '', a: () => 'Cupons disponíveis na demonstração: CEM10 (10% off), BEMVINDO (R$ 50 off acima de R$ 500) e FRETEGRATIS. Aplique no carrinho.' },
+      garantia: { q: '', a: () => 'Todos os produtos têm garantia do fabricante de no mínimo 12 meses. Guarde a nota fiscal.' },
+      horario: { q: '', a: () => 'As lojas funcionam de seg. a sex., das 9h às 18h, e aos sábados, das 9h às 13h (horários ilustrativos).' },
+      cancelar: { q: '', a: () => 'Para cancelar, fale com um atendente antes do envio do pedido. Após o envio, recuse a entrega ou solicite a devolução.' },
+      montagem: { q: '', a: () => 'A montagem de móveis é oferecida em algumas cidades. Consulte a disponibilidade com um atendente.' },
+      humano: { q: 'Quero falar com uma pessoa.', a: null },
+    };
+    const KEYWORDS = [
+      ['retir', 'retirada'], ['buscar na loja', 'retirada'], ['entreg', 'entrega'], ['frete', 'entrega'], ['prazo', 'entrega'],
+      ['troca', 'troca'], ['trocar', 'troca'], ['devol', 'troca'], ['cancel', 'cancelar'],
+      ['pedido', 'pedido'], ['rastre', 'pedido'], ['onde est', 'pedido'], ['status', 'pedido'],
+      ['carn', 'carne'], ['boleto', 'carne'], ['parcela', 'carne'], ['cupom', 'cupom'], ['desconto', 'cupom'],
+      ['pag', 'pagamento'], ['pix', 'pagamento'], ['cart', 'pagamento'], ['garant', 'garantia'], ['defeito', 'garantia'],
+      ['horár', 'horario'], ['horar', 'horario'], ['abre', 'horario'], ['loja', 'horario'], ['mont', 'montagem'],
+      ['pessoa', 'humano'], ['atendente', 'humano'], ['humano', 'humano'],
+    ];
+
+    const FAQ = [
+      ['Qual o prazo de entrega?', ANSWERS.entrega.a()],
+      ['Posso retirar a compra em uma loja?', ANSWERS.retirada.a()],
+      ['Quais as formas de pagamento?', ANSWERS.pagamento.a()],
+      ['Como funciona o carnê digital?', 'O carnê digital é uma proposta deste TCC: você parcela em até 10x, sujeito à análise de crédito, e acompanha e paga as parcelas pelo site.'],
+      ['Como trocar ou devolver um produto?', ANSWERS.troca.a()],
+      ['Os produtos têm garantia?', ANSWERS.garantia.a()],
+    ];
+    document.getElementById('faq').innerHTML = FAQ.map(([q, a]) => `<details class="faq-item"><summary>${q} ${icon('chevronDown')}</summary><p>${a}</p></details>`).join('');
+
+    const log = document.getElementById('log');
+    const now = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    let human = false;
+
+    function add(text, me = false) {
+      const el = document.createElement('div');
+      el.className = `msg${me ? ' me' : ''}`;
+      el.innerHTML = `${me ? '' : `<span class="avatar">${icon(human ? 'headset' : 'bot')}</span>`}<div class="bubble"></div><time>${now()}</time>`;
+      el.querySelector('.bubble').textContent = text;
+      log.append(el);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function typing(fn, ms = 700) {
+      const el = document.createElement('div');
+      el.className = 'msg typing';
+      el.innerHTML = `<span class="avatar">${icon(human ? 'headset' : 'bot')}</span><div class="bubble"><span></span><span></span><span></span></div>`;
+      el.setAttribute('aria-label', 'Digitando');
+      log.append(el);
+      log.scrollTop = log.scrollHeight;
+      setTimeout(() => { el.remove(); fn(); }, ms);
+    }
+
+    function quickReplies() {
+      const el = document.createElement('div');
+      el.className = 'quick';
+      el.innerHTML = '<a class="btn btn-outline" href="lojas.html" style="padding:8px 22px">Consultar lojas</a><button type="button" data-q="humano">Atendimento humano</button>';
+      log.append(el);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function reply(key) {
+      if (key === 'humano') {
+        if (human) return typing(() => add('Estou aqui! Me conte o que aconteceu que eu verifico para você.'));
+        typing(() => add('Certo! Vou transferir você para um atendente.'));
+        setTimeout(() => {
+          human = true;
+          document.getElementById('chat-who').textContent = 'Carla • Atendente';
+          typing(() => add('Olá! Aqui é a Carla, da Lojas CEM (atendente simulada). Como posso ajudar?'), 1200);
+        }, 1400);
+        return;
+      }
+      if (human) return typing(() => add(key ? ANSWERS[key].a() : 'Entendi. Vou verificar e retorno em instantes. Posso ajudar com mais alguma coisa?'), 1200);
+      typing(() => {
+        add(key ? ANSWERS[key].a() : 'Desculpe, não entendi. Posso ajudar com pedidos, entregas, trocas, pagamentos, carnê ou cupons.');
+        setTimeout(() => typing(() => { add('Quer consultar uma loja ou falar com uma pessoa?'); quickReplies(); }), 400);
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-q]');
+      if (!b) return;
+      add(ANSWERS[b.dataset.q].q, true);
+      reply(b.dataset.q);
+    });
+
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('msg');
+      const text = input.value.trim();
+      if (!text) return;
+      add(text, true);
+      input.value = '';
+      const t = text.toLowerCase();
+      reply(KEYWORDS.find(([k]) => t.includes(k))?.[1]);
+    });
+
+    add('Olá! Posso ajudar com produtos, entregas ou parcelas. O que você precisa?');
+  </script>
+</body>
+</html>

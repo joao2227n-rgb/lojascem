@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Institucional - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="institucional">
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo" style="max-width:1200px">
+    <nav class="breadcrumb" aria-label="Trilha"><a href="index.html">Início</a> &nbsp;/&nbsp; <span aria-current="page">Institucional</span></nav>
+    <div class="inst">
+      <nav class="card side-menu inst-menu" aria-label="Institucional">
+        <a href="#sobre">Conheça as Lojas CEM</a>
+        <a href="#pagamentos">Formas de pagamento</a>
+        <a href="#entrega">Entrega e retirada</a>
+        <a href="#trocas">Trocas e devoluções</a>
+        <a href="#trabalhe">Trabalhe conosco</a>
+        <a href="#contato">Contato</a>
+        <a href="#termos">Termos de uso</a>
+        <a href="#privacidade">Política de privacidade</a>
+      </nav>
+      <div class="inst-body">
+        <div class="notice warn">Protótipo acadêmico não oficial. Os textos abaixo são ilustrativos e não representam documentos reais da empresa.</div>
+
+        <section id="sobre">
+          <h1>Conheça as Lojas CEM</h1>
+          <p>A Lojas CEM é uma rede varejista de móveis, eletrodomésticos e eletrônicos com lojas físicas. As unidades exibidas neste site são fictícias.</p>
+          <p>Este protótipo propõe um e-commerce integrado às lojas físicas, com compra pelo site, retirada em loja e um carnê digital para acompanhar as parcelas online.</p>
+        </section>
+
+        <section id="pagamentos">
+          <h2>Formas de pagamento</h2>
+          <ul>
+            <li><strong>Pix:</strong> 5% de desconto, aprovação imediata.</li>
+            <li><strong>Cartão de crédito:</strong> em até 10x sem juros.</li>
+            <li><strong>Carnê digital:</strong> em até 10x, sujeito à análise de crédito. As parcelas ficam em Minha conta.</li>
+          </ul>
+        </section>
+
+        <section id="entrega">
+          <h2>Entrega e retirada</h2>
+          <table class="parcelas">
+            <thead><tr><th>Região (início do CEP)</th><th>Frete</th><th>Prazo</th></tr></thead>
+            <tbody id="frete-table"></tbody>
+          </table>
+          <p>A <strong>retirada em loja</strong> é gratuita e fica disponível em até 2 dias úteis após a aprovação do pagamento.</p>
+        </section>
+
+        <section id="trocas">
+          <h2>Trocas e devoluções</h2>
+          <p>Você pode solicitar troca ou devolução em até 7 dias corridos após o recebimento, conforme o Código de Defesa do Consumidor. O produto deve estar sem uso e com a nota fiscal.</p>
+        </section>
+
+        <section id="trabalhe">
+          <h2>Trabalhe conosco</h2>
+          <form id="f-trab" class="card form-card" novalidate>
+            <div class="form-grid">
+              <div class="field span-2"><label for="t-nome">Nome completo</label><input class="input" id="t-nome" autocomplete="name"></div>
+              <div class="field span-2"><label for="t-email">E-mail</label><input class="input" id="t-email" type="email" autocomplete="email"></div>
+              <div class="field span-2"><label for="t-area">Área de interesse</label>
+                <select class="input" id="t-area"><option>Vendas</option><option>Caixa</option><option>Logística</option><option>Administrativo</option><option>Tecnologia</option></select></div>
+              <div class="field span-2"><label for="t-cidade">Cidade</label><input class="input" id="t-cidade" autocomplete="address-level2"></div>
+            </div>
+            <p class="error" id="e-trab" aria-live="polite"></p>
+            <button class="btn btn-primary">Enviar candidatura (simulado)</button>
+          </form>
+        </section>
+
+        <section id="contato">
+          <h2>Contato</h2>
+          <form id="f-contato" class="card form-card" novalidate>
+            <div class="form-grid">
+              <div class="field span-2"><label for="c-nome">Nome</label><input class="input" id="c-nome" autocomplete="name"></div>
+              <div class="field span-2"><label for="c-email">E-mail</label><input class="input" id="c-email" type="email" autocomplete="email"></div>
+              <div class="field span-4"><label for="c-msg">Mensagem</label><textarea class="input" id="c-msg" rows="4" maxlength="1000"></textarea></div>
+            </div>
+            <p class="error" id="e-contato" aria-live="polite"></p>
+            <button class="btn btn-primary">Enviar mensagem (simulado)</button>
+          </form>
+          <p class="muted">Ou use o <a href="atendimento.html">assistente virtual</a>.</p>
+        </section>
+
+        <section id="termos">
+          <h2>Termos de uso</h2>
+          <p>Ao usar este site você concorda que ele é uma demonstração acadêmica. Preços, estoques, prazos e condições são ilustrativos. Nenhuma compra, cobrança ou contratação real é realizada.</p>
+        </section>
+
+        <section id="privacidade">
+          <h2>Política de privacidade</h2>
+          <p>Os dados digitados (nome, e-mail, celular, endereços, pedidos e favoritos) ficam salvos apenas no armazenamento local do seu navegador e não são enviados a nenhum servidor. Senhas e dados de cartão nunca são armazenados.</p>
+          <p>A busca de endereço por CEP consulta a API pública ViaCEP, enviando somente o CEP. O mapa de lojas carrega imagens do OpenStreetMap.</p>
+          <button type="button" class="btn btn-outline" id="clear">Apagar meus dados deste navegador</button>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('frete-table').innerHTML = FRETE_REGIOES.map((r) =>
+      `<tr><td>${r.ini === r.fim ? r.ini : `${r.ini} a ${r.fim}`} • ${r.nome}</td><td>${brl(r.valor)}</td><td>${r.prazo}</td></tr>`).join('');
+
+    function simpleForm(id, err, check) {
+      document.getElementById(id).addEventListener('submit', (e) => {
+        e.preventDefault();
+        const msg = check();
+        document.getElementById(err).textContent = msg || '';
+        if (msg) return;
+        e.target.reset();
+        toast('Enviado com sucesso (simulado)!');
+      });
+    }
+    const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    simpleForm('f-trab', 'e-trab', () => {
+      if (document.getElementById('t-nome').value.trim().length < 3) return 'Informe seu nome.';
+      if (!isEmail(document.getElementById('t-email').value.trim())) return 'Informe um e-mail válido.';
+      if (!document.getElementById('t-cidade').value.trim()) return 'Informe sua cidade.';
+    });
+    simpleForm('f-contato', 'e-contato', () => {
+      if (document.getElementById('c-nome').value.trim().length < 3) return 'Informe seu nome.';
+      if (!isEmail(document.getElementById('c-email').value.trim())) return 'Informe um e-mail válido.';
+      if (document.getElementById('c-msg').value.trim().length < 10) return 'Escreva uma mensagem com pelo menos 10 caracteres.';
+    });
+
+    document.getElementById('clear').addEventListener('click', () => {
+      if (!confirm('Apagar conta, pedidos, carrinho e favoritos salvos neste navegador? Isso não pode ser desfeito.')) return;
+      Object.keys(localStorage).filter((k) => k.startsWith('cem-')).forEach((k) => localStorage.removeItem(k));
+      location.href = 'index.html';
+    });
+
+    document.querySelectorAll('.inst-menu a').forEach((a) => a.toggleAttribute('aria-current', a.getAttribute('href') === location.hash));
+    window.addEventListener('hashchange', () => document.querySelectorAll('.inst-menu a').forEach((a) => a.toggleAttribute('aria-current', a.getAttribute('href') === location.hash)));
+  </script>
+</body>
+</html>

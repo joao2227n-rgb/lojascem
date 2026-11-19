@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Minha conta - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="conta">
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo" style="max-width:1520px">
+    <nav class="breadcrumb" aria-label="Trilha"><a href="index.html">Início</a> &nbsp;/&nbsp; <a href="minha-conta.html#visao">Minha conta</a> &nbsp;/&nbsp; <span aria-current="page" id="crumb"></span></nav>
+    <div class="account">
+      <nav class="card side-menu" aria-label="Minha conta">
+        <a href="#visao" data-sec="visao"><span data-icon="home"></span>Visão geral</a>
+        <a href="#pedidos" data-sec="pedidos"><span data-icon="box"></span>Meus pedidos</a>
+        <a href="#carne" data-sec="carne"><span data-icon="doc"></span>Carnê digital</a>
+        <a href="#dados" data-sec="dados"><span data-icon="user"></span>Meus dados</a>
+        <a href="favoritos.html"><span data-icon="heart"></span>Favoritos</a>
+        <button type="button" id="logout"><span data-icon="logout"></span>Sair</button>
+      </nav>
+      <div id="panel"></div>
+    </div>
+
+    <dialog id="dlg" aria-labelledby="dlg-title"></dialog>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!User.get()) { location.replace(`conta.html?next=minha-conta.html${location.hash}`); throw new Error('Sem login'); }
+    fillIcons();
+
+    const panel = document.getElementById('panel');
+    const dlg = document.getElementById('dlg');
+    const nomesPag = { pix: 'Pix', cartao: 'Cartão de crédito', carne: 'Carnê digital' };
+    const fmtDate = (iso) => new Date(iso).toLocaleDateString('pt-BR');
+    const myOrders = () => Orders.all().filter((o) => o.cliente.email.toLowerCase() === User.get().email.toLowerCase());
+
+    // Contrato de exemplo, igual ao protótipo, para quem ainda não comprou no carnê.
+    const EXEMPLO = {
+      id: 'CEM-EX-001', exemplo: true, data: '2026-08-10T12:00:00Z',
+      itens: [{ id: 'geladeira', nome: 'Geladeira Frost Free 400 L', cor: 'Inox', volt: '127 V', qty: 1, preco: 2799 }],
+      totais: { total: 2799 }, pagamento: { tipo: 'carne', parcelas: 10 },
+      carne: Array.from({ length: 10 }, (_, i) => ({ n: i + 1, venc: new Date(2026, 8 + i, 10).toISOString(), valor: 279.9, paga: i < 2 })),
+    };
+
+    const hoje = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+    function parcelaStatus(o, p) {
+      if (p.paga) return ['paga', 'Paga', 'checkCircle'];
+      if (new Date(p.venc) < hoje()) return ['atrasada', 'Atrasada', 'clock'];
+      const firstOpen = o.carne.find((x) => !x.paga);
+      return p === firstOpen ? ['aberto', 'Em aberto', 'clock'] : ['avencer', 'A vencer', 'clock'];
+    }
+    // Encargos simulados: multa de 2% + juros de 1% ao mês, proporcionais aos dias de atraso.
+    function valorAtualizado(p) {
+      const dias = Math.max(0, Math.floor((hoje() - new Date(p.venc)) / 86400000));
+      const multa = dias ? p.valor * 0.02 : 0;
+      const juros = p.valor * 0.01 * (dias / 30);
+      return { dias, multa, juros, total: p.valor + multa + juros };
+    }
+    const contratos = () => myOrders().filter((o) => o.carne && !o.cancelado);
+
+    function orderSummaryCard(o) {
+      return `
+        <article class="card order-row">
+          <div class="order-row-head">
+            <div><span class="muted">Pedido</span><strong>${o.id}</strong></div>
+            <div><span class="muted">Data</span><strong>${fmtDate(o.data)}</strong></div>
+            <div><span class="muted">Total</span><strong>${brl(o.totais.total)}</strong></div>
+            <div><span class="muted">Pagamento</span><strong>${nomesPag[o.pagamento.tipo]}</strong></div>
+            <span class="status ${o.cancelado ? 'atrasada' : Orders.step(o) === 0 ? 'aberto' : 'paga'}">${icon(o.cancelado ? 'x' : Orders.step(o) === 0 ? 'clock' : 'checkCircle')}${Orders.status(o)}</span>
+          </div>
+          <div class="order-row-items">
+            ${o.itens.map((i) => productImg(productById(i.id), 1, i.nome, 'title="' + escapeHtml(i.nome) + '"')).join('')}
+            <span class="muted">${plural(o.itens.reduce((n, i) => n + i.qty, 0), 'item', 'itens')}</span>
+            <a class="btn btn-outline" href="pedido.html?id=${o.id}">Ver detalhes ${icon('chevronRight')}</a>
+          </div>
+        </article>`;
+    }
+
+    const SECTIONS = {
+      visao: ['Visão geral', () => {
+        const u = User.get();
+        const orders = myOrders();
+        const abertas = contratos().flatMap((o) => o.carne).filter((p) => !p.paga).length;
+        return `
+          <h1>Olá, ${escapeHtml(u.nome.split(' ')[0])}</h1>
+          <p class="subtitle">Bem-vindo(a) à sua conta</p>
+          <div class="stats">
+            <a class="panel stat" href="#pedidos"><span class="circle">${icon('box')}</span><div><span>Pedidos</span><strong>${orders.length}</strong></div></a>
+            <a class="panel stat" href="#carne"><span class="circle">${icon('doc')}</span><div><span>Parcelas em aberto</span><strong>${abertas}</strong></div></a>
+            <a class="panel stat" href="favoritos.html"><span class="circle">${icon('heart')}</span><div><span>Favoritos</span><strong>${Favs.ids().length}</strong></div></a>
+          </div>
+          <h2 style="margin:18px 0 12px">Último pedido</h2>
+          ${orders[0] ? orderSummaryCard(orders[0]) : `<div class="card empty-state">${icon('box')}<h2>Você ainda não fez pedidos</h2><p>Aproveite as ofertas da semana.</p><a class="btn btn-primary" href="categoria.html?c=ofertas">Ver ofertas</a></div>`}`;
+      }],
+
+      pedidos: ['Meus pedidos', () => {
+        const orders = myOrders();
+        return `<h1>Meus pedidos</h1><p class="subtitle">${plural(orders.length, 'pedido', 'pedidos')}</p>
+          ${orders.length ? orders.map(orderSummaryCard).join('') : `<div class="card empty-state">${icon('box')}<h2>Nenhum pedido ainda</h2><p>Seus pedidos aparecem aqui depois da compra.</p><a class="btn btn-primary" href="categoria.html">Explorar produtos</a></div>`}`;
+      }],
+
+      carne: ['Carnê digital', () => {
+        const meus = contratos();
+        const list = meus.length ? meus : [EXEMPLO];
+        return `<h1>Olá, ${escapeHtml(User.get().nome.split(' ')[0])}</h1><p class="subtitle">Seu carnê digital</p>
+          ${meus.length ? '' : `<div class="notice" style="margin-bottom:12px">${icon('info')}<div>Você ainda não tem contratos. Abaixo, um <strong>contrato de exemplo</strong>. Compre no carnê para ver o seu aqui.</div></div>`}
+          ${list.map((o) => {
+            const pagas = o.carne.filter((p) => p.paga);
+            const saldo = o.carne.filter((p) => !p.paga).reduce((s, p) => s + p.valor, 0);
+            const it = o.itens[0];
+            const p = productById(it.id);
+            return `
+              <div class="stats">
+                <div class="panel stat"><span class="circle">${icon('doc')}</span><div><span>Valor do contrato</span><strong>${brl(o.totais.total)}</strong></div></div>
+                <div class="panel stat"><span class="circle ok">${icon('check')}</span><div><span>Parcelas pagas</span><strong>${pagas.length} de ${o.carne.length}</strong></div></div>
+                <div class="panel stat"><span class="circle">${icon('card')}</span><div><span>Saldo restante</span><strong>${brl(saldo)}</strong></div></div>
+              </div>
+              <section class="card contract">
+                <div class="contract-body">
+                  ${productImg(p, 1, it.nome)}
+                  <div>
+                    <h2>Contrato ${o.exemplo ? 'de exemplo' : ''} • ${o.id}</h2>
+                    <h3>${o.itens.map((i) => i.nome).join(' + ')}</h3>
+                    <p>${[it.cor, it.volt].filter(Boolean).join(' &nbsp;|&nbsp; ')}</p>
+                    <p class="parcelas">${o.carne.length} parcelas de ${brl(o.carne[0].valor)}</p>
+                    <div class="table-wrap">
+                      <table class="parcelas">
+                        <thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead>
+                        <tbody>${o.carne.map((pc, idx) => {
+                          const [cls, label, ic] = parcelaStatus(o, pc);
+                          const va = valorAtualizado(pc);
+                          const pagavel = pc === o.carne.find((x) => !x.paga);
+                          return `<tr ${idx >= 4 ? 'class="extra" hidden' : ''}>
+                            <td>${String(pc.n).padStart(2, '0')}/${String(o.carne.length).padStart(2, '0')}</td>
+                            <td>${fmtDate(pc.venc)}</td>
+                            <td>${cls === 'atrasada' ? `<strong class="late">${brl(va.total)}</strong><br><small class="muted">original ${brl(pc.valor)}</small>` : brl(pc.valorPago ?? pc.valor)}</td>
+                            <td><span class="status ${cls}">${icon(ic)}${label}</span></td>
+                            <td><button type="button" class="link-btn" data-order="${o.id}" data-n="${pc.n}">${pc.paga ? 'Ver comprovante' : pagavel ? 'Pagar parcela' : 'Ver parcela'} ${icon('chevronRight')}</button></td>
+                          </tr>`;
+                        }).join('')}</tbody>
+                      </table>
+                    </div>
+                    ${o.carne.length > 4 ? `<button type="button" class="link-btn toggle-all" style="margin:12px 0 0 6px" aria-expanded="false">Ver todas as ${o.carne.length} parcelas ${icon('chevronDown')}</button>` : ''}
+                  </div>
+                </div>
+                <div class="notice">${icon('info')}<div>O saldo restante se refere apenas ao contrato deste pedido.<br><small class="muted">Funcionalidade hipotética, sujeita a estudos de segurança e aprovação da empresa.</small></div></div>
+              </section>`;
+          }).join('')}`;
+      }],
+
+      dados: ['Meus dados', () => {
+        const u = User.get();
+        return `<h1>Meus dados</h1><p class="subtitle">Mantenha suas informações atualizadas</p>
+          <form class="card form-card" id="f-dados" novalidate>
+            <h2>Dados pessoais</h2>
+            <div class="form-grid">
+              <div class="field span-4"><label for="d-nome">Nome completo</label><input class="input" id="d-nome" autocomplete="name" value="${escapeHtml(u.nome)}"></div>
+              <div class="field span-2"><label for="d-email">E-mail</label><input class="input" id="d-email" value="${escapeHtml(u.email)}" readonly aria-describedby="d-email-hint"><span class="hint" id="d-email-hint">O e-mail identifica sua conta e não pode ser alterado.</span></div>
+              <div class="field span-2"><label for="d-cel">Celular</label><input class="input" id="d-cel" type="tel" inputmode="numeric" autocomplete="tel" value="${escapeHtml(u.celular ?? '')}"></div>
+            </div>
+            <p class="error" id="e-dados" aria-live="polite"></p>
+            <button class="btn btn-primary">Salvar alterações</button>
+          </form>
+          <section class="card form-card">
+            <h2>Endereços</h2>
+            <div id="end-list">${(u.enderecos || []).map((a, i) => `
+              <div class="addr-item">${icon('pin')}<div><strong>${escapeHtml(addrLine(a))}</strong><span class="muted">${escapeHtml(addrCity(a))}</span></div>
+              <button type="button" class="link-btn" data-rm-end="${i}">${icon('trash')} Remover</button></div>`).join('') || '<p class="muted">Nenhum endereço cadastrado.</p>'}</div>
+            <details class="add-addr">
+              <summary class="btn btn-outline">${icon('plus')} Adicionar endereço</summary>
+              <form id="f-end" novalidate style="margin-top:14px">
+                ${addressFields()}
+                <p class="error" id="e-end" aria-live="polite"></p>
+                <button class="btn btn-primary">Salvar endereço</button>
+              </form>
+            </details>
+          </section>`;
+      }],
+    };
+
+    function show() {
+      const key = SECTIONS[location.hash.slice(1)] ? location.hash.slice(1) : 'visao';
+      const [title, html] = SECTIONS[key];
+      document.title = `${title} - Lojas CEM`;
+      document.getElementById('crumb').textContent = title;
+      document.querySelectorAll('[data-sec]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.sec === key));
+      document.querySelector('[data-sec][aria-current]').setAttribute('aria-current', 'page');
+      panel.innerHTML = html();
+      if (key === 'dados') bindDados();
+    }
+
+    function bindDados() {
+      const cel = document.getElementById('d-cel');
+      mask(cel, fmtPhone);
+      document.getElementById('f-dados').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nome = document.getElementById('d-nome').value.trim();
+        const err = document.getElementById('e-dados');
+        if (nome.split(/\s+/).length < 2) return err.textContent = 'Informe seu nome completo.';
+        err.textContent = '';
+        User.update({ nome, celular: cel.value.trim() });
+        renderHeader();
+        toast('Dados atualizados');
+      });
+      const fEnd = document.getElementById('f-end');
+      bindAddress(fEnd);
+      fEnd.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const a = readAddress(fEnd);
+        if (a.erro) return document.getElementById('e-end').textContent = a.erro;
+        User.update({ enderecos: [...(User.get().enderecos || []), a] });
+        toast('Endereço salvo');
+        show();
+      });
+      document.getElementById('end-list').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-rm-end]');
+        if (!b) return;
+        User.update({ enderecos: User.get().enderecos.filter((_, i) => i !== Number(b.dataset.rmEnd)) });
+        toast('Endereço removido');
+        show();
+      });
+    }
+
+    panel.addEventListener('click', (e) => {
+      const tog = e.target.closest('.toggle-all');
+      if (tog) {
+        const open = tog.getAttribute('aria-expanded') !== 'true';
+        tog.closest('.contract').querySelectorAll('tr.extra').forEach((tr) => { tr.hidden = !open; });
+        tog.setAttribute('aria-expanded', open);
+        tog.innerHTML = `${open ? 'Mostrar menos' : `Ver todas as parcelas`} ${icon(open ? 'chevronUp' : 'chevronDown')}`;
+        return;
+      }
+      const b = e.target.closest('[data-order]');
+      if (!b) return;
+      const o = b.dataset.order === EXEMPLO.id ? EXEMPLO : Orders.get(b.dataset.order);
+      const pc = o.carne[b.dataset.n - 1];
+      const [cls] = parcelaStatus(o, pc);
+      const va = valorAtualizado(pc);
+      const pagavel = pc === o.carne.find((x) => !x.paga);
+      const titulo = `Parcela ${String(pc.n).padStart(2, '0')}/${String(o.carne.length).padStart(2, '0')}`;
+      const encargos = cls === 'atrasada' ? `
+        <table class="parcelas" style="margin-bottom:14px;text-align:left">
+          <tr><td>Valor original</td><td>${brl(pc.valor)}</td></tr>
+          <tr><td>Multa (2%)</td><td>${brl(va.multa)}</td></tr>
+          <tr><td>Juros (1% a.m. • ${plural(va.dias, 'dia', 'dias')})</td><td>${brl(va.juros)}</td></tr>
+          <tr><td><strong>Total atualizado</strong></td><td><strong>${brl(va.total)}</strong></td></tr>
+        </table>` : '';
+      let body;
+      if (pc.paga) body = `<p>Comprovante ilustrativo: pagamento de <strong>${brl(pc.valorPago ?? pc.valor)}</strong> referente ao vencimento ${fmtDate(pc.venc)}${pc.pagaEm ? `, pago em ${fmtDate(pc.pagaEm)}` : ''}.</p>`;
+      else if (pagavel && !o.exemplo) body = `<p>Vencimento ${fmtDate(pc.venc)}${cls === 'atrasada' ? ' • <strong class="late">em atraso</strong>' : ''}</p>${encargos || `<p>Valor: <strong>${brl(pc.valor)}</strong></p>`}<button type="button" class="btn btn-primary btn-block" id="pay-now">${icon('pix')} Pagar ${brl(va.total)} com Pix (simulado)</button>`;
+      else body = `${encargos}<p>Valor de <strong>${brl(pc.valor)}</strong> com vencimento em ${fmtDate(pc.venc)}.${o.exemplo ? ' Contrato de exemplo: o pagamento não está disponível.' : ' Pague as parcelas em ordem.'}</p>`;
+      dlg.innerHTML = `${icon('carne')}<h2 id="dlg-title">${titulo}</h2>${body}<button type="button" class="btn btn-outline btn-block" style="margin-top:10px" id="dlg-close">Fechar</button>`;
+      dlg.querySelector('.icon').style.color = 'var(--blue)';
+      dlg.showModal();
+      document.getElementById('dlg-close').addEventListener('click', () => dlg.close());
+      document.getElementById('pay-now')?.addEventListener('click', () => {
+        pc.paga = true;
+        pc.pagaEm = new Date().toISOString();
+        pc.valorPago = va.total;
+        Orders.save(o);
+        dlg.close();
+        toast('Parcela paga (simulado)!');
+        show();
+      });
+    });
+
+    document.getElementById('logout').addEventListener('click', () => { User.logout(); location.href = 'index.html'; });
+    window.addEventListener('hashchange', show);
+    show();
+  </script>
+</body>
+</html>

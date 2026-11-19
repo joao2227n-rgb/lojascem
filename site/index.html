@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Lojas CEM - Tudo para a sua casa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="home">
+  <header id="site-header"></header>
+
+  <main id="conteudo">
+    <div style="width: min(1560px, 100% - 32px); margin-inline: auto;">
+      <section class="hero">
+        <div class="hero-text">
+          <span class="tag">PROPOSTA DE E-COMMERCE</span>
+          <h1>Tudo para a sua casa, em um só lugar.</h1>
+          <p>Explore móveis, eletrodomésticos e eletrônicos.</p>
+          <a class="btn btn-primary btn-lg" href="categoria.html">Explorar produtos <span data-icon="chevronRight"></span></a>
+        </div>
+        <div class="hero-img"><img src="img/hero.webp" alt="Sala com geladeira inox, sofá bege e smart TV"></div>
+      </section>
+
+      <section class="benefits" aria-label="Vantagens">
+        <div class="benefit"><span data-icon="cart"></span><div><strong>Compra pelo site</strong><span>É prático, rápido e seguro.</span></div></div>
+        <div class="benefit"><span data-icon="truck"></span><div><strong>Entrega ou retirada em loja</strong><span>Mais conveniência para você.</span></div></div>
+        <div class="benefit"><span data-icon="headset"></span><div><strong>Atendimento para ajudar</strong><span>Conte com a gente em todas as etapas.</span></div></div>
+      </section>
+    </div>
+
+    <section class="container">
+      <div class="section-head">
+        <h2>Produtos em destaque</h2>
+        <a class="link-btn" href="categoria.html">Ver todos os produtos <span data-icon="chevronRight"></span></a>
+      </div>
+      <div class="home-grid" id="destaques"></div>
+    </section>
+
+    <section class="container">
+      <div class="section-head">
+        <h2>Navegue por departamento</h2>
+      </div>
+      <div class="dept-grid" id="depts"></div>
+    </section>
+
+    <section class="container">
+      <div class="section-head">
+        <h2>Ofertas da semana</h2>
+        <a class="link-btn" href="categoria.html?c=ofertas">Ver todas as ofertas <span data-icon="chevronRight"></span></a>
+      </div>
+      <div class="home-grid" id="ofertas"></div>
+    </section>
+
+    <section class="container">
+      <div class="promo">
+        <div>
+          <span class="tag">CUPOM DE BOAS-VINDAS</span>
+          <h2>Ganhe 10% na primeira compra</h2>
+          <p>Use o cupom <strong>CEM10</strong> no carrinho. Válido para todos os produtos.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg" id="copy-coupon"><span data-icon="copy"></span> Copiar cupom</button>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('destaques').innerHTML =
+      ['geladeira', 'sofa', 'tv', 'fogao'].map((id) => productCard(productById(id))).join('');
+    document.getElementById('ofertas').innerHTML =
+      PRODUCTS.filter((p) => p.de && !['geladeira', 'sofa', 'tv', 'fogao'].includes(p.id))
+        .sort((a, b) => discountPct(b) - discountPct(a)).slice(0, 4).map(productCard).join('');
+    document.getElementById('depts').innerHTML = Object.entries(DEPARTMENTS).map(([k, d]) => `
+      <a class="dept" href="categoria.html?c=${k}">
+        <span class="dept-icon">${icon(d.icon)}</span>
+        <strong>${d.nome}</strong>
+        <span>${plural(PRODUCTS.filter((p) => p.cat === k).length, 'produto', 'produtos')}</span>
+      </a>`).join('');
+    document.getElementById('copy-coupon').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText('CEM10'); } catch { /* sem permissão de área de transferência */ }
+      toast('Cupom CEM10 copiado!');
+    });
+    fillIcons();
+  </script>
+</body>
+</html>

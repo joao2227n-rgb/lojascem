@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Finalizar compra - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="checkout">
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo">
+    <div class="checkout-head">
+      <h1>Finalizar compra</h1>
+      <ol class="steps" aria-label="Etapas" id="steps">
+        <li><span class="num">1</span><span class="label">Identificação</span></li>
+        <li><span class="num">2</span><span class="label">Entrega</span></li>
+        <li><span class="num">3</span><span class="label">Pagamento</span></li>
+      </ol>
+    </div>
+
+    <div class="co-layout">
+      <div>
+        <section class="card co-section" id="s1" aria-labelledby="h1s">
+          <div class="co-title"><h2 id="h1s">1. Identificação</h2><button type="button" class="link-btn" data-edit="1" hidden>Alterar</button></div>
+          <div class="co-body"></div>
+        </section>
+        <section class="card co-section" id="s2" aria-labelledby="h2s">
+          <div class="co-title"><h2 id="h2s">2. Entrega</h2><button type="button" class="link-btn" data-edit="2" hidden>Alterar</button></div>
+          <div class="co-body"></div>
+        </section>
+        <section class="card co-section" id="s3" aria-labelledby="h3s">
+          <div class="co-title"><h2 id="h3s">3. Pagamento</h2></div>
+          <div class="co-body"></div>
+        </section>
+      </div>
+
+      <aside class="card co-summary" aria-label="Resumo do pedido">
+        <h2>Resumo do pedido</h2>
+        <div class="inner">
+          <div id="co-items"></div>
+          <div id="co-totals"></div>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="finish" disabled>Finalizar pedido <span data-icon="chevronRight"></span></button>
+        <p class="foot">Demonstração acadêmica sem transação real.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!Cart.count()) { location.replace('carrinho.html'); throw new Error('Carrinho vazio'); }
+    fillIcons();
+
+    let step = User.get() ? 2 : 1;
+    let address = null;
+    const sec = (n) => document.querySelector(`#s${n} .co-body`);
+
+    // ---------- Resumo ----------
+    document.getElementById('co-items').innerHTML = Cart.items().map((i) => {
+      const p = productById(i.id);
+      return `
+        <div class="co-item">
+          ${productImg(p, 1, '')}
+          <div>
+            <h3>${p.nome}</h3>
+            <p>${[`${i.qty} un.`, i.cor, i.volt].filter(Boolean).join(' • ')}</p>
+            <p>Cód. ${p.cod}</p>
+            <div class="price">${priceHtml(unitPrice(p, i.cor) * i.qty)}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    function renderTotals() {
+      const t = totals();
+      document.getElementById('co-totals').innerHTML = `
+        <div class="sum-line"><span>Produtos (${plural(Cart.count(), 'item', 'itens')})</span><span>${brl(t.sub)}</span></div>
+        ${t.desconto ? `<div class="sum-line discount"><span>Cupom ${t.cupom.code}</span><span>- ${brl(t.desconto)}</span></div>` : ''}
+        ${t.pix ? `<div class="sum-line discount"><span>Desconto Pix (5%)</span><span>- ${brl(t.pix)}</span></div>` : ''}
+        <div class="sum-line"><span>Entrega</span><span>${t.frete ? brl(t.frete) : 'Grátis'}</span></div>
+        ${t.cupomErro ? `<p class="notice warn" role="status">${t.cupomErro}</p>` : ''}
+        <div class="sum-total"><span style="font-size:1.8rem">Total</span><strong>${brl(t.total)}</strong></div>`;
+      return t;
+    }
+
+    // ---------- Etapa 1 ----------
+    function renderStep1() {
+      const u = User.get();
+      if (step > 1 && u) {
+        sec(1).innerHTML = `<div class="id-box">${icon('user')}<div><strong></strong><span></span></div></div>`;
+        sec(1).querySelector('strong').textContent = u.nome;
+        sec(1).querySelector('span').textContent = u.email;
+        return;
+      }
+      sec(1).innerHTML = `
+        <p>Já tem conta? <a href="conta.html?next=checkout.html">Entrar</a>. Ou continue informando seus dados:</p>
+        <form id="f1" novalidate>
+          <div class="form-grid">
+            <div class="field span-4"><label for="i-nome">Nome completo</label><input class="input" id="i-nome" autocomplete="name" required></div>
+            <div class="field span-2"><label for="i-email">E-mail</label><input class="input" id="i-email" type="email" autocomplete="email" required></div>
+            <div class="field span-2"><label for="i-cel">Celular</label><input class="input" id="i-cel" type="tel" inputmode="numeric" autocomplete="tel" required></div>
+          </div>
+          <p class="error" id="e1" aria-live="polite"></p>
+          <button class="btn btn-primary">Continuar para entrega ${icon('chevronRight')}</button>
+        </form>`;
+      if (u) {
+        document.getElementById('i-nome').value = u.nome;
+        document.getElementById('i-email').value = u.email;
+        document.getElementById('i-cel').value = u.celular ?? '';
+      }
+      mask(document.getElementById('i-cel'), fmtPhone);
+      document.getElementById('f1').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nome = document.getElementById('i-nome').value.trim();
+        const email = document.getElementById('i-email').value.trim();
+        const celular = document.getElementById('i-cel').value.trim();
+        const err = document.getElementById('e1');
+        if (nome.split(/\s+/).length < 2) return err.textContent = 'Informe seu nome completo.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err.textContent = 'Informe um e-mail válido.';
+        if (celular.replace(/\D/g, '').length < 10) return err.textContent = 'Informe um celular com DDD.';
+        User.set({ ...(User.get() || { enderecos: [] }), nome, email, celular });
+        renderHeader();
+        go(2);
+      });
+    }
+
+    // ---------- Etapa 2 ----------
+    function renderStep2() {
+      const p = Prefs.get();
+      if (step < 2) { sec(2).innerHTML = '<p class="muted">Preencha a identificação para continuar.</p>'; return; }
+      if (step > 2) {
+        if (p.entrega === 'casa') {
+          sec(2).innerHTML = `<div class="id-box">${icon('truck')}<div><strong>Receber em casa</strong><span></span><br><small class="muted"></small></div></div>`;
+          sec(2).querySelector('span').textContent = addrLine(address);
+          sec(2).querySelector('small').textContent = `${addrCity(address)} • ${regiaoFrete(address.cep).prazo}`;
+        } else {
+          const s = STORES.find((x) => x.id === p.loja);
+          sec(2).innerHTML = `<div class="id-box">${icon('store')}<div><strong>Retirar em loja: ${s.nome}</strong><span>${s.end} • ${s.cidade} / ${s.uf}</span></div></div>`;
+        }
+        return;
+      }
+      const u = User.get();
+      const ends = u.enderecos || [];
+      sec(2).innerHTML = `
+        <form id="f2" novalidate>
+          <div class="options two">
+            <label class="option"><input type="radio" name="entrega" value="casa"><span>${icon('truck')}</span><span><strong>Receber em casa</strong><span class="desc">Receba no seu endereço</span></span></label>
+            <label class="option"><input type="radio" name="entrega" value="loja"><span>${icon('store')}</span><span><strong>Retirar em loja</strong><span class="desc">Grátis, em até 2 dias úteis</span></span></label>
+          </div>
+          <div id="casa" class="sub-step">
+            ${ends.length ? `<fieldset class="addr-list"><legend>Endereços salvos</legend>
+              ${ends.map((a, i) => `<label class="option"><input type="radio" name="end" value="${i}" ${i === 0 ? 'checked' : ''}>${icon('pin')}<span><strong>${escapeHtml(addrLine(a))}</strong><span class="desc">${escapeHtml(addrCity(a))}</span></span></label>`).join('')}
+              <label class="option"><input type="radio" name="end" value="novo">${icon('plus')}<span><strong>Usar um novo endereço</strong></span></label>
+            </fieldset>` : ''}
+            <div id="novo-end" ${ends.length ? 'hidden' : ''}>
+              ${addressFields()}
+              <label class="check"><input type="checkbox" id="salvar-end" checked> Salvar este endereço na minha conta</label>
+            </div>
+          </div>
+          <div id="loja" class="sub-step" hidden>
+            <div class="field"><label for="loja-sel">Escolha a loja para retirada</label>
+              <select class="input" id="loja-sel">
+                <option value="">Selecione uma loja</option>
+                ${Object.entries(UFS).map(([uf, nome]) => `<optgroup label="${nome}">${STORES.filter((s) => s.uf === uf).map((s) => `<option value="${s.id}">${s.nome} - ${s.cidade}</option>`).join('')}</optgroup>`).join('')}
+              </select>
+            </div>
+            <p class="muted">Não sabe qual escolher? <a href="lojas.html">Ver lojas no mapa</a></p>
+          </div>
+          <p class="error" id="e2" aria-live="polite"></p>
+          <button class="btn btn-primary">Continuar para pagamento ${icon('chevronRight')}</button>
+        </form>`;
+
+      const form = document.getElementById('f2');
+      bindAddress(form);
+      if (p.loja) document.getElementById('loja-sel').value = p.loja;
+      const sync = () => {
+        const modo = form.querySelector('[name=entrega]:checked').value;
+        document.getElementById('casa').hidden = modo !== 'casa';
+        document.getElementById('loja').hidden = modo !== 'loja';
+        const sel = form.querySelector('[name=end]:checked');
+        document.getElementById('novo-end').hidden = !!sel && sel.value !== 'novo';
+        if (modo === 'casa' && sel && sel.value !== 'novo') Prefs.set({ cep: ends[sel.value].cep });
+        Prefs.set({ entrega: modo });
+        renderTotals();
+      };
+      form.querySelectorAll('[name=entrega]').forEach((r) => { r.checked = r.value === p.entrega; });
+      form.addEventListener('change', sync);
+      form.querySelector('[name=cep]').addEventListener('input', (e) => {
+        const r = consultarCep(e.target.value);
+        if (r) { Prefs.set({ cep: r.cep }); renderTotals(); }
+      });
+      sync();
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const err = document.getElementById('e2');
+        const modo = form.querySelector('[name=entrega]:checked').value;
+        if (modo === 'loja') {
+          const loja = document.getElementById('loja-sel').value;
+          if (!loja) return err.textContent = 'Escolha uma loja para retirada.';
+          Prefs.set({ loja });
+          address = null;
+        } else {
+          const sel = form.querySelector('[name=end]:checked');
+          if (sel && sel.value !== 'novo') {
+            address = ends[sel.value];
+          } else {
+            const a = readAddress(form);
+            if (a.erro) return err.textContent = a.erro;
+            address = a;
+            if (document.getElementById('salvar-end').checked) User.update({ enderecos: [...ends, a] });
+          }
+          Prefs.set({ cep: address.cep });
+        }
+        err.textContent = '';
+        go(3);
+      });
+    }
+
+    // ---------- Etapa 3 ----------
+    function renderStep3() {
+      if (step < 3) { sec(3).innerHTML = '<p class="muted">Escolha a forma de entrega para continuar.</p>'; return; }
+      const t = totals();
+      sec(3).innerHTML = `
+        <form id="f3" novalidate>
+          <div class="options three">
+            <label class="option"><input type="radio" name="pagamento" value="pix">${icon('pix')}<span><strong>Pix</strong><span class="desc">5% off</span></span></label>
+            <label class="option"><input type="radio" name="pagamento" value="cartao">${icon('card')}<span><strong>Cartão de crédito</strong><span class="desc">Até 10x</span></span></label>
+            <label class="option"><input type="radio" name="pagamento" value="carne">${icon('carne')}<span><strong>Carnê digital</strong><span class="desc">Até 10x</span></span></label>
+          </div>
+          <div class="pay-panel" id="p-pix">
+            <div class="notice">${icon('info')}<div>O QR Code Pix é exibido após a finalização e vale por 30 minutos.<br><small>Simulação: nenhuma cobrança será realizada.</small></div></div>
+          </div>
+          <div class="pay-panel" id="p-cartao">
+            <div class="notice warn">${icon('shield')}<div><strong>Não digite dados de um cartão real.</strong> Use o número de teste 4111 1111 1111 1111. Nada é enviado nem salvo.</div></div>
+            <div class="form-grid" style="margin-top:12px">
+              <div class="field span-4"><label for="c-num">Número do cartão <span class="brand" id="c-brand" aria-live="polite"></span></label><input class="input" id="c-num" inputmode="numeric" autocomplete="off" placeholder="0000 0000 0000 0000"></div>
+              <div class="field span-4"><label for="c-nome">Nome impresso no cartão</label><input class="input" id="c-nome" autocomplete="off"></div>
+              <div class="field span-2"><label for="c-exp">Validade</label><input class="input" id="c-exp" inputmode="numeric" placeholder="MM/AA" autocomplete="off"></div>
+              <div class="field span-2"><label for="c-cvv">CVV</label><input class="input" id="c-cvv" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+              <div class="field span-4"><label for="c-parc">Parcelas</label><select class="input" id="c-parc"></select></div>
+            </div>
+          </div>
+          <div class="pay-panel" id="p-carne">
+            <div class="field"><label for="k-parc">Parcelas do carnê</label><select class="input" id="k-parc"></select></div>
+            <label class="check"><input type="checkbox" id="k-aceite"> <span>Autorizo a análise de crédito (simulada) e aceito as condições do carnê digital.</span></label>
+            <div class="notice" style="margin-top:10px">${icon('info')}<div>Carnê digital proposto, sujeito à análise de crédito e aprovação da empresa.<br><small>As parcelas ficam disponíveis em Minha conta &gt; Carnê digital.</small></div></div>
+          </div>
+          <p class="error" id="e3" aria-live="polite"></p>
+        </form>
+        <div class="notice">${icon('info')} Pagamento simulado. Nenhuma cobrança será realizada.</div>`;
+
+      const form = document.getElementById('f3');
+      const fillParc = () => {
+        const total = totals().total;
+        const opts = Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}">${i + 1}x de ${brl(total / (i + 1))} sem juros</option>`).join('');
+        document.getElementById('c-parc').innerHTML = opts;
+        document.getElementById('k-parc').innerHTML = opts;
+        document.getElementById('k-parc').value = '10';
+      };
+      const sync = () => {
+        const v = form.querySelector('[name=pagamento]:checked').value;
+        Prefs.set({ pagamento: v });
+        ['pix', 'cartao', 'carne'].forEach((k) => { document.getElementById(`p-${k}`).hidden = k !== v; });
+        renderTotals();
+        fillParc();
+      };
+      form.querySelectorAll('[name=pagamento]').forEach((r) => {
+        r.checked = r.value === Prefs.get().pagamento;
+        r.addEventListener('change', sync);
+      });
+      sync();
+      mask(document.getElementById('c-num'), fmtCard);
+      document.getElementById('c-num').addEventListener('input', (e) => {
+        document.getElementById('c-brand').textContent = cardBrand(e.target.value) ?? '';
+      });
+      mask(document.getElementById('c-exp'), fmtExp);
+      mask(document.getElementById('c-cvv'), (d) => d.slice(0, 4));
+      document.getElementById('finish').disabled = false;
+    }
+
+    function validatePayment() {
+      const v = Prefs.get().pagamento;
+      const err = document.getElementById('e3');
+      err.textContent = '';
+      if (v === 'cartao') {
+        const num = document.getElementById('c-num').value;
+        const [mm, aa] = document.getElementById('c-exp').value.split('/').map(Number);
+        const now = new Date();
+        const expOk = mm >= 1 && mm <= 12 && aa >= 0 && new Date(2000 + aa, mm) > now;
+        if (!luhn(num)) return err.textContent = 'Número de cartão inválido. Use o número de teste 4111 1111 1111 1111.';
+        if (!cardBrand(num)) return err.textContent = 'Bandeira não aceita. Aceitamos Visa, Mastercard, Elo, Hipercard e American Express.';
+        if (document.getElementById('c-nome').value.trim().length < 3) return err.textContent = 'Informe o nome impresso no cartão.';
+        if (!expOk) return err.textContent = 'Validade inválida ou vencida.';
+        if (document.getElementById('c-cvv').value.length < 3) return err.textContent = 'CVV inválido.';
+        return { tipo: 'cartao', parcelas: Number(document.getElementById('c-parc').value), final: num.replace(/\D/g, '').slice(-4), bandeira: cardBrand(num) };
+      }
+      if (v === 'carne') {
+        if (!document.getElementById('k-aceite').checked) return err.textContent = 'Autorize a análise de crédito para usar o carnê.';
+        return { tipo: 'carne', parcelas: Number(document.getElementById('k-parc').value) };
+      }
+      return { tipo: 'pix', parcelas: 1 };
+    }
+
+    // ---------- Navegação ----------
+    function go(n) {
+      step = n;
+      render();
+      document.getElementById(`s${n}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function render() {
+      document.querySelectorAll('#steps li').forEach((li, i) => {
+        li.classList.toggle('active', i + 1 === step);
+        li.classList.toggle('done', i + 1 < step);
+        li.toggleAttribute('aria-current', i + 1 === step);
+      });
+      document.querySelectorAll('[data-edit]').forEach((b) => { b.hidden = Number(b.dataset.edit) >= step; });
+      [1, 2, 3].forEach((n) => document.getElementById(`s${n}`).classList.toggle('locked', n > step));
+      document.getElementById('finish').disabled = step < 3;
+      renderStep1();
+      renderStep2();
+      renderStep3();
+      renderTotals();
+    }
+    document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.edit))));
+
+    document.getElementById('finish').addEventListener('click', () => {
+      if (step < 3) return;
+      const semEstoque = Cart.items().find((i) => i.qty > stockOf(productById(i.id)) - Cart.qtyOf(i.id, i.key));
+      if (semEstoque) {
+        document.getElementById('e3').textContent = `Estoque insuficiente para ${productById(semEstoque.id).nome}. Ajuste a quantidade no carrinho.`;
+        document.getElementById('e3').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const pag = validatePayment();
+      if (typeof pag !== 'object') {
+        document.getElementById('e3').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      const t = renderTotals();
+      const p = Prefs.get();
+      const u = User.get();
+      const now = new Date();
+      const order = {
+        id: newOrderId(),
+        data: now.toISOString(),
+        cliente: { nome: u.nome, email: u.email },
+        itens: Cart.items().map((i) => {
+          const pr = productById(i.id);
+          return { id: i.id, nome: pr.nome, cor: i.cor, volt: i.volt, qty: i.qty, preco: unitPrice(pr, i.cor) };
+        }),
+        totais: { sub: t.sub, desconto: t.desconto, cupom: t.cupom?.code ?? null, pix: t.pix, frete: t.frete, total: t.total },
+        entrega: p.entrega === 'casa' ? { modo: 'casa', endereco: address, prazo: regiaoFrete(address.cep).prazo } : { modo: 'loja', loja: p.loja },
+        pagamento: pag,
+        pago: pag.tipo !== 'pix',
+        pagoEm: pag.tipo !== 'pix' ? now.toISOString() : null,
+      };
+      if (pag.tipo === 'carne') {
+        order.carne = Array.from({ length: pag.parcelas }, (_, i) => ({
+          n: i + 1,
+          venc: new Date(now.getFullYear(), now.getMonth() + i + 1, 10).toISOString(),
+          valor: t.total / pag.parcelas,
+          paga: false,
+        }));
+      }
+      Orders.create(order);
+      Cart.set([]);
+      Prefs.set({ cupom: null });
+      location.href = `pedido.html?id=${order.id}`;
+    });
+
+    render();
+  </script>
+</body>
+</html>

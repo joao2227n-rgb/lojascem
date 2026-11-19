@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Produto - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo"></main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const p = productById(param('id'));
+    if (!p) { location.replace('404.html'); throw new Error('Produto inexistente'); }
+    document.body.dataset.page = p.cat;
+    renderHeader();
+    document.title = `${p.nome} - Lojas CEM`;
+    const dept = DEPARTMENTS[p.cat];
+    const r = Reviews.summary(p.id);
+    const off = discountPct(p);
+    const hasVolt = p.volts.length > 1;
+
+    document.getElementById('conteudo').innerHTML = `
+      <nav class="breadcrumb" aria-label="Trilha">
+        <a href="index.html">Início</a> &nbsp;/&nbsp; <a href="categoria.html?c=${p.cat}">${dept.nome}</a> &nbsp;/&nbsp;
+        <a href="categoria.html?c=${p.cat}&sub=${encodeURIComponent(p.sub)}" style="color:var(--blue);text-decoration:underline">${p.sub}</a>
+      </nav>
+      <div class="pdp">
+        <div class="thumbs">
+          ${Array.from({ length: 4 }, (_, i) => `<button type="button" aria-pressed="${i === 0}" aria-label="Ver imagem ${i + 1}" data-n="${i + 1}">${
+            i === 0 ? productImg(p, 1, '') : `<img src="${photo(p, i + 1)}" alt="" onerror="extraFallback(this)">`}</button>`).join('')}
+        </div>
+        <div class="main-img" id="zoom" title="Passe o mouse para ampliar">
+          ${productImg(p, 1, p.nome, 'id="main-img"')}
+          ${off ? `<span class="off">-${off}%</span>` : ''}
+          ${favButton(p, 'big')}
+        </div>
+        <div class="pdp-info">
+          <h1>${p.nome}</h1>
+          <p class="code">Código ilustrativo: ${p.cod} • Marca: ${p.marca}</p>
+          <a class="rating" href="#avaliacoes" data-goto-reviews>${stars(r.avg)} <span>${r.avg.toFixed(1).replace('.', ',')} (${plural(r.count, 'avaliação', 'avaliações')})</span></a>
+          <div class="old-price" id="old-price"></div>
+          <div class="price" id="price"></div>
+          <div class="installments" id="installments"></div>
+          <p class="pix-price" id="pix-price"></p>
+
+          <div class="variants">
+            <fieldset class="swatches">
+              <legend>Cor: <span id="cor-label"></span></legend>
+              ${p.cores.map((c, i) => `<label class="swatch" title="${c.nome}"><input type="radio" name="cor" value="${c.nome}" ${i === 0 ? 'checked' : ''}><span style="background:${c.hex}"></span><span class="sr-only">${c.nome}</span></label>`).join('')}
+            </fieldset>
+            ${p.volts.length ? `<div><label for="volt">Voltagem${hasVolt ? '' : `: ${p.volts[0]}`}</label>
+              <select class="input" id="volt" ${hasVolt ? '' : 'disabled'}>${p.volts.map((v) => `<option>${v}</option>`).join('')}</select></div>` : ''}
+          </div>
+
+          <p class="stock" id="stock"></p>
+          <div class="buy-row" id="buy-row">
+            <div class="qty" role="group" aria-label="Quantidade">
+              <button type="button" data-q="-1" aria-label="Diminuir">−</button>
+              <output id="qty" aria-live="polite">1</output>
+              <button type="button" data-q="1" aria-label="Aumentar">+</button>
+            </div>
+            <button type="button" class="btn btn-primary btn-lg" id="add">${icon('cart')} Adicionar ao carrinho</button>
+          </div>
+          <form class="notify" id="notify" hidden>
+            <p><strong>Produto esgotado.</strong> Avisamos quando chegar:</p>
+            <div class="cep-row">
+              <label for="notify-email" class="sr-only">E-mail</label>
+              <input class="input" id="notify-email" type="email" placeholder="Seu e-mail" autocomplete="email" required>
+              <button class="btn btn-blue">Avise-me</button>
+            </div>
+          </form>
+
+          <div class="panel cep-box">
+            ${icon('truck')}
+            <form id="cep-form">
+              <h3><label for="cep">Calcule a entrega</label></h3>
+              <div class="cep-row">
+                <input class="input" id="cep" inputmode="numeric" placeholder="Digite seu CEP" autocomplete="postal-code">
+                <button class="btn btn-blue">Consultar</button>
+              </div>
+              <p class="cep-result" id="cep-result" aria-live="polite">Entrega ou retirada grátis em loja, conforme disponibilidade simulada.</p>
+            </form>
+          </div>
+
+          <details class="simulator">
+            <summary>${icon('card')} Simular parcelamento</summary>
+            <table class="parcelas" id="sim"></table>
+          </details>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tablist" role="tablist">
+          <button role="tab" id="t-desc" aria-controls="p-desc" aria-selected="false" tabindex="-1">Descrição</button>
+          <button role="tab" id="t-spec" aria-controls="p-spec" aria-selected="true">Especificações</button>
+          <button role="tab" id="t-rev" aria-controls="avaliacoes" aria-selected="false" tabindex="-1">Avaliações</button>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="p-desc" aria-labelledby="t-desc" hidden><p style="margin:0;font-size:1.1rem">${p.desc}</p></div>
+        <div class="tabpanel" role="tabpanel" id="p-spec" aria-labelledby="t-spec">
+          <div class="specs">${p.specs.map(([k, v]) => `<div><span>${k}</span><strong>${v}</strong></div>`).join('')}</div>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="avaliacoes" aria-labelledby="t-rev" hidden>
+          <div class="reviews">
+            <div class="review-list" id="review-list"></div>
+            <form class="panel review-form" id="review-form" novalidate>
+              <h3>Avalie este produto</h3>
+              <fieldset class="star-input">
+                <legend>Sua nota</legend>
+                ${[5, 4, 3, 2, 1].map((n) => `<input type="radio" name="nota" id="n${n}" value="${n}"><label for="n${n}" title="${n} estrela${n > 1 ? 's' : ''}">${icon('star')}<span class="sr-only">${n} estrela${n > 1 ? 's' : ''}</span></label>`).join('')}
+              </fieldset>
+              <div class="field"><label for="r-nome">Nome</label><input class="input" id="r-nome" maxlength="40" required></div>
+              <div class="field"><label for="r-texto">Comentário</label><textarea class="input" id="r-texto" rows="3" maxlength="400" required></textarea></div>
+              <p class="error" id="r-error" aria-live="polite"></p>
+              <button class="btn btn-primary">Enviar avaliação</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <section>
+        <div class="section-head" style="padding:0"><h2>Você também pode gostar</h2></div>
+        <div class="home-grid" style="padding:0" id="related"></div>
+      </section>`;
+
+    const corInputs = document.querySelectorAll('[name=cor]');
+    const volt = document.getElementById('volt');
+    const cor = () => document.querySelector('[name=cor]:checked').value;
+    let qty = 1;
+
+    function renderPrice() {
+      const price = unitPrice(p, cor());
+      const de = p.de ? p.de + (price - p.preco) : 0;
+      document.getElementById('cor-label').textContent = cor();
+      document.getElementById('old-price').textContent = de ? `de ${brl(de)} por` : '';
+      document.getElementById('price').innerHTML = priceHtml(price);
+      document.getElementById('installments').textContent = `ou 10x de ${brl(price / 10)} sem juros`;
+      document.getElementById('pix-price').innerHTML = `${icon('pix')} <strong>${brl(price * (1 - PIX_DESCONTO))}</strong> no Pix (5% de desconto)`;
+      document.getElementById('sim').innerHTML = `<thead><tr><th>Parcelas</th><th>Valor</th><th>Total</th></tr></thead><tbody>${
+        Array.from({ length: 10 }, (_, i) => `<tr><td>${i + 1}x</td><td>${brl(price / (i + 1))}</td><td>${brl(price)} sem juros</td></tr>`).join('')}</tbody>`;
+      const n = stockOf(p);
+      const noCarrinho = Cart.qtyOf(p.id);
+      const stock = document.getElementById('stock');
+      stock.className = `stock ${n === 0 ? 'out' : n <= 5 ? 'low' : 'ok'}`;
+      stock.textContent = (n === 0 ? 'Esgotado' : n <= 5 ? `Últimas ${n} unidades!` : 'Em estoque')
+        + (noCarrinho ? ` • ${noCarrinho} no seu carrinho` : '');
+      document.getElementById('buy-row').hidden = n === 0;
+      document.getElementById('notify').hidden = n > 0;
+    }
+    corInputs.forEach((i) => i.addEventListener('change', renderPrice));
+    renderPrice();
+
+    document.querySelector('.buy-row .qty').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-q]');
+      if (!b) return;
+      qty = Math.min(Math.max(1, qty + Number(b.dataset.q)), Math.max(1, stockOf(p) - Cart.qtyOf(p.id)));
+      document.getElementById('qty').textContent = qty;
+    });
+
+    document.querySelectorAll('.thumbs button').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('.thumbs button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      const img = document.getElementById('main-img');
+      img.onerror = () => imgFallback(img);
+      img.src = b.querySelector('img').src;
+    }));
+
+    // Zoom: amplia seguindo o mouse.
+    const zoom = document.getElementById('zoom');
+    const mainImg = document.getElementById('main-img');
+    zoom.addEventListener('mousemove', (e) => {
+      const rect = zoom.getBoundingClientRect();
+      mainImg.style.transformOrigin = `${((e.clientX - rect.left) / rect.width) * 100}% ${((e.clientY - rect.top) / rect.height) * 100}%`;
+      mainImg.style.transform = 'scale(1.9)';
+    });
+    zoom.addEventListener('mouseleave', () => { mainImg.style.transform = ''; });
+
+    document.getElementById('add').addEventListener('click', () => {
+      const pedido = qty;
+      const added = Cart.add(p.id, cor(), volt?.value ?? null, pedido);
+      qty = 1;
+      document.getElementById('qty').textContent = qty;
+      renderPrice();
+      if (!added) return toast(`Você já tem todo o estoque disponível (${stockOf(p)}) no carrinho.`);
+      openMiniCart(true);
+      if (added < pedido) toast(`Só ${added} unidade(s) adicionada(s): limite de estoque.`);
+    });
+
+    document.getElementById('notify').addEventListener('submit', (e) => {
+      e.preventDefault();
+      toast('Pronto! Avisaremos quando o produto chegar (simulado).');
+      e.target.reset();
+    });
+
+    const cep = document.getElementById('cep');
+    maskCep(cep);
+    if (Prefs.get().cep) cep.value = Prefs.get().cep;
+    document.getElementById('cep-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const res = consultarCep(cep.value);
+      if (res) Prefs.set({ cep: res.cep });
+      document.getElementById('cep-result').innerHTML = res
+        ? `Entrega para ${res.regiao}: <strong>${brl(res.valor)}</strong>, prazo ${res.prazo}.<br>Retirada em loja: <strong>grátis</strong>, em até 2 dias úteis. <a href="lojas.html">Ver lojas</a>`
+        : '<span class="error">Informe um CEP válido com 8 dígitos.</span>';
+    });
+
+    const tabs = document.querySelectorAll('[role=tab]');
+    function selectTab(t) {
+      tabs.forEach((x) => {
+        const on = x === t;
+        x.setAttribute('aria-selected', on);
+        x.tabIndex = on ? 0 : -1;
+        document.getElementById(x.getAttribute('aria-controls')).hidden = !on;
+      });
+    }
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => selectTab(t));
+      t.addEventListener('keydown', (e) => {
+        const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (!d) return;
+        const n = tabs[(i + d + tabs.length) % tabs.length];
+        selectTab(n);
+        n.focus();
+      });
+    });
+    document.querySelector('[data-goto-reviews]').addEventListener('click', (e) => {
+      e.preventDefault();
+      selectTab(document.getElementById('t-rev'));
+      document.getElementById('t-rev').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function renderReviews() {
+      document.getElementById('review-list').innerHTML = Reviews.list(p.id).map((rv) => `
+        <article class="review">
+          <div>${stars(rv.nota)} <strong></strong></div>
+          <p></p>
+        </article>`).join('');
+      document.querySelectorAll('.review').forEach((el, i) => {
+        const rv = Reviews.list(p.id)[i];
+        el.querySelector('strong').textContent = rv.nome;
+        el.querySelector('p').textContent = rv.texto;
+      });
+    }
+    renderReviews();
+
+    document.getElementById('review-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nota = Number(new FormData(e.target).get('nota'));
+      const nome = document.getElementById('r-nome').value.trim();
+      const texto = document.getElementById('r-texto').value.trim();
+      const err = document.getElementById('r-error');
+      if (!nota) return err.textContent = 'Escolha uma nota de 1 a 5 estrelas.';
+      if (!nome || !texto) return err.textContent = 'Preencha seu nome e o comentário.';
+      err.textContent = '';
+      Reviews.add(p.id, { nome, nota, texto });
+      e.target.reset();
+      renderReviews();
+      toast('Obrigado pela avaliação!');
+    });
+
+    const related = [
+      ...PRODUCTS.filter((x) => x.sub === p.sub && x.id !== p.id),
+      ...PRODUCTS.filter((x) => x.cat === p.cat && x.sub !== p.sub),
+    ].slice(0, 4);
+    document.getElementById('related').innerHTML = related.map(productCard).join('');
+  </script>
+</body>
+</html>

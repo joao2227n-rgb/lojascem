@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Acesse sua conta - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="conta" style="background:var(--bg-soft)">
+  <header id="site-header" style="background:#fff"></header>
+
+  <main class="page container" id="conteudo" style="max-width:1380px">
+    <nav class="breadcrumb" aria-label="Trilha"><a href="index.html">Início</a> &nbsp;/&nbsp; <span aria-current="page">Minha conta</span></nav>
+    <h1 style="margin-bottom:16px">Acesse sua conta</h1>
+
+    <div class="auth">
+      <form class="card" id="login" novalidate>
+        <h2>Já sou cliente</h2>
+        <p class="lead">Entre na sua conta para acompanhar seus pedidos, ver seus dados e aproveitar ainda mais ofertas.</p>
+        <div class="field">
+          <label for="l-email">E-mail</label>
+          <input class="input" id="l-email" type="email" placeholder="Seu e-mail" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="l-senha">Senha</label>
+          <div class="input-wrap">
+            <input class="input" id="l-senha" type="password" placeholder="Sua senha" autocomplete="current-password" required>
+            <button type="button" class="eye" aria-label="Mostrar senha" data-toggle="l-senha"></button>
+          </div>
+        </div>
+        <div class="auth-row">
+          <label class="check"><input type="checkbox" id="l-keep"> Manter conectado</label>
+          <a href="#" id="forgot">Esqueci minha senha</a>
+        </div>
+        <p class="error" id="l-error" aria-live="polite"></p>
+        <button class="btn btn-primary btn-block">Entrar</button>
+      </form>
+
+      <form class="card" id="cadastro" novalidate>
+        <h2>Criar uma conta</h2>
+        <p class="lead" style="font-size:1.2rem">Cadastre-se e tenha uma experiência ainda melhor na Lojas CEM.</p>
+        <div class="field">
+          <label for="s-nome">Nome completo</label>
+          <input class="input" id="s-nome" placeholder="Seu nome completo" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="s-email">E-mail</label>
+          <input class="input" id="s-email" type="email" placeholder="Seu e-mail" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="s-cel">Celular</label>
+          <input class="input" id="s-cel" type="tel" placeholder="Seu celular" autocomplete="tel" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="s-senha">Senha</label>
+          <div class="input-wrap">
+            <input class="input" id="s-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password" minlength="8" required aria-describedby="s-hint">
+            <button type="button" class="eye" aria-label="Mostrar senha" data-toggle="s-senha"></button>
+          </div>
+          <span class="hint" id="s-hint">Use pelo menos 8 caracteres, com letras e números.</span>
+          <div class="strength" aria-hidden="true"><span id="s-bar"></span></div>
+        </div>
+        <label class="check" style="margin-bottom:8px"><input type="checkbox" id="s-termos"> <span>Li e aceito os <a href="institucional.html#termos" target="_blank">termos de uso</a> e a <a href="institucional.html#privacidade" target="_blank">política de privacidade</a></span></label>
+        <p class="error" id="s-error" aria-live="polite"></p>
+        <button class="btn btn-blue btn-block">Criar conta</button>
+      </form>
+    </div>
+    <p class="auth-note" id="status" aria-live="polite">Ambiente ilustrativo. Nenhum dado sai do seu navegador.</p>
+  </main>
+
+  <footer id="site-footer" class="site-footer" style="background:#fff;margin-top:0"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const next = param('next');
+    const safeNext = next && /^[a-z-]+\.html(#[a-z]+)?$/.test(next) ? next : 'minha-conta.html';
+    if (User.get()) location.replace(safeNext);
+
+    document.querySelectorAll('[data-toggle]').forEach((b) => {
+      const input = document.getElementById(b.dataset.toggle);
+      b.innerHTML = icon('eye');
+      b.addEventListener('click', () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        b.innerHTML = icon(show ? 'eyeOff' : 'eye');
+        b.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+      });
+    });
+
+    const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    const nameFromEmail = (e) => e.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+    function enter(u, msg) {
+      User.set(u);
+      toast(msg);
+      setTimeout(() => { location.href = safeNext; }, 600);
+    }
+
+    document.getElementById('login').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('l-email').value.trim();
+      const senha = document.getElementById('l-senha').value;
+      const err = document.getElementById('l-error');
+      if (!isEmail(email)) return err.textContent = 'Informe um e-mail válido.';
+      if (!senha) return err.textContent = 'Informe sua senha.';
+      err.textContent = '';
+      const u = User.find(email) || { nome: nameFromEmail(email), email, celular: '', enderecos: [] };
+      enter(u, `Bem-vindo(a), ${u.nome.split(' ')[0]}!`);
+    });
+
+    const senha = document.getElementById('s-senha');
+    senha.addEventListener('input', () => {
+      const v = senha.value;
+      const score = [v.length >= 8, /[a-z]/i.test(v) && /\d/.test(v), v.length >= 12 || /[^a-z0-9]/i.test(v)].filter(Boolean).length;
+      const bar = document.getElementById('s-bar');
+      bar.style.width = `${(score / 3) * 100}%`;
+      bar.style.background = ['#c62828', '#e07b00', '#f5a623', '#1f9d55'][score];
+    });
+
+    document.getElementById('cadastro').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('s-nome').value.trim();
+      const email = document.getElementById('s-email').value.trim();
+      const celular = document.getElementById('s-cel').value.trim();
+      const err = document.getElementById('s-error');
+      if (nome.split(/\s+/).length < 2) return err.textContent = 'Informe seu nome completo.';
+      if (!isEmail(email)) return err.textContent = 'Informe um e-mail válido.';
+      if (User.find(email)) return err.textContent = 'Já existe uma conta com este e-mail. Use "Já sou cliente".';
+      if (senha.value.length < 8 || !/[a-z]/i.test(senha.value) || !/\d/.test(senha.value)) return err.textContent = 'A senha precisa ter 8 caracteres, com letras e números.';
+      if (!document.getElementById('s-termos').checked) return err.textContent = 'Aceite os termos de uso para continuar.';
+      err.textContent = '';
+      enter({ nome, email, celular, enderecos: [] }, 'Conta criada com sucesso!');
+    });
+
+    document.getElementById('forgot').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('status').textContent = 'Demonstração: o link de recuperação seria enviado para o seu e-mail.';
+    });
+
+    mask(document.getElementById('s-cel'), fmtPhone);
+    if (location.hash === '#cadastro') document.getElementById('s-nome').focus();
+  </script>
+</body>
+</html>

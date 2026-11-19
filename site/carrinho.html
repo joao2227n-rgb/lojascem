@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Meu carrinho - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="carrinho">
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo">
+    <nav class="breadcrumb" aria-label="Trilha"><a href="index.html">Início</a> &nbsp;/&nbsp; <span aria-current="page">Carrinho</span></nav>
+    <h1>Meu carrinho</h1>
+    <p class="subtitle" id="count"></p>
+
+    <div class="cart-layout" id="layout">
+      <div>
+        <div class="card cart-table">
+          <div class="cart-row head"><span>Produto</span><span>Quantidade</span><span>Preço unitário</span><span>Subtotal</span></div>
+          <div id="items"></div>
+        </div>
+
+        <section class="panel box">
+          <h2>Como você prefere receber?</h2>
+          <div class="options two">
+            <label class="option"><input type="radio" name="entrega" value="casa"><span data-icon="truck"></span><span><strong>Receber em casa</strong><span class="desc">Entregamos no seu endereço</span></span></label>
+            <label class="option"><input type="radio" name="entrega" value="loja"><span data-icon="store"></span><span><strong>Retirar em loja</strong><span class="desc">Grátis, em até 2 dias úteis</span></span></label>
+          </div>
+          <form id="cep-form" style="margin-top:12px">
+            <label for="cep" style="font-weight:700;color:var(--navy);font-size:1.15rem;display:block;margin-bottom:6px">Calcular entrega</label>
+            <div class="calc-row">
+              <div class="input-wrap"><span class="lead"><span data-icon="pin"></span></span><input class="input has-icon" id="cep" inputmode="numeric" placeholder="Digite seu CEP" autocomplete="postal-code"></div>
+              <button class="btn btn-primary">Calcular</button>
+              <div class="frete-pill"><span data-icon="truck"></span><span id="frete-txt" aria-live="polite"></span></div>
+            </div>
+            <p class="error" id="cep-error" aria-live="polite"></p>
+          </form>
+          <p id="loja-txt" class="muted" hidden>Você escolhe a loja de retirada no checkout. <a href="lojas.html">Ver lojas</a></p>
+        </section>
+
+        <section class="panel box">
+          <h2>Formas de pagamento previstas</h2>
+          <div class="options three">
+            <label class="option"><input type="radio" name="pagamento" value="pix"><span data-icon="pix"></span><span><strong>Pix</strong><span class="desc">5% de desconto</span></span></label>
+            <label class="option"><input type="radio" name="pagamento" value="cartao"><span data-icon="card"></span><span><strong>Cartão de crédito</strong><span class="desc">Até 10x sem juros</span></span></label>
+            <label class="option"><input type="radio" name="pagamento" value="carne"><span data-icon="carne"></span><span><strong>Carnê digital</strong><span class="desc">Até 10x</span></span></label>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;margin-top:12px;color:var(--navy)">
+            <span data-icon="doc" style="color:var(--blue)"></span>
+            <div id="pag-info"></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="card summary" aria-label="Resumo do pedido">
+        <div class="summary-head"><h2>Resumo do pedido</h2></div>
+        <div class="summary-body">
+          <div id="sum"></div>
+          <form class="coupon-area" id="coupon-form">
+            <label for="cupom" style="font-weight:700;color:var(--navy)">Cupom de desconto</label>
+            <div id="coupon-box"></div>
+            <p class="error" id="coupon-error" aria-live="polite"></p>
+          </form>
+          <a class="btn btn-primary btn-lg btn-block" id="go-checkout" href="checkout.html">Continuar para o checkout <span data-icon="chevronRight"></span></a>
+          <a class="btn btn-outline btn-lg btn-block" href="categoria.html">Continuar comprando</a>
+          <p class="foot">Valores usados apenas para demonstração</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    fillIcons();
+
+    const PAG_INFO = {
+      pix: ['5% de desconto no pagamento à vista via Pix.', 'O QR Code é gerado após a finalização.'],
+      cartao: ['Parcele em até 10x sem juros no cartão de crédito.', 'Dados do cartão informados no checkout.'],
+      carne: ['Proposta sujeita à análise de crédito e aprovação da empresa.', 'Necessário ter conta. Condições no checkout.'],
+    };
+
+    function summaryHtml() {
+      const t = totals();
+      const n = Cart.count();
+      return `
+        <div class="sum-line"><span>Produtos (${n})</span><span>${brl(t.sub)}</span></div>
+        ${t.desconto ? `<div class="sum-line discount"><span>Cupom ${t.cupom.code}</span><span>- ${brl(t.desconto)}</span></div>` : ''}
+        ${t.pix ? `<div class="sum-line discount"><span>Desconto Pix (5%)</span><span>- ${brl(t.pix)}</span></div>` : ''}
+        <div class="sum-line"><span>Entrega</span><span>${t.frete ? brl(t.frete) : 'Grátis'}</span></div>
+        ${t.cupomErro ? `<p class="notice warn" role="status">${t.cupomErro}</p>` : ''}
+        <div class="sum-total"><span>Total</span><strong>${brl(t.total)}</strong></div>`;
+    }
+
+    function render() {
+      const items = Cart.items();
+      const n = Cart.count();
+      document.getElementById('count').textContent = plural(n, 'produto', 'produtos');
+      if (!items.length) {
+        document.getElementById('layout').innerHTML = `<div class="card empty-state" style="grid-column:1/-1">${icon('cart')}<h2>Seu carrinho está vazio</h2><p>Que tal dar uma olhada nas ofertas da semana?</p><a class="btn btn-primary btn-lg" href="categoria.html?c=ofertas">Ver ofertas</a></div>`;
+        return;
+      }
+      document.getElementById('items').innerHTML = items.map((i) => {
+        const p = productById(i.id);
+        const price = unitPrice(p, i.cor);
+        const max = stockOf(p) - Cart.qtyOf(p.id, i.key);
+        return `
+          <div class="cart-row cart-item">
+            <div class="prod">
+              ${productImg(p, 1, '')}
+              <div>
+                <h3><a href="produto.html?id=${p.id}">${p.nome}</a></h3>
+                <p>${[i.cor, i.volt].filter(Boolean).join(' &nbsp;•&nbsp; ')}</p>
+                <p class="code">Cód. ${p.cod}</p>
+                <button type="button" class="link-btn" data-act="save" data-key="${i.key}" style="font-size:.92rem">${icon('heart')} Mover para favoritos</button>
+              </div>
+            </div>
+            <div>
+              <div class="qty" role="group" aria-label="Quantidade de ${escapeHtml(p.nome)}">
+                <button type="button" data-act="dec" data-key="${i.key}" aria-label="Diminuir" ${i.qty <= 1 ? 'disabled' : ''}>−</button>
+                <output>${i.qty}</output>
+                <button type="button" data-act="inc" data-key="${i.key}" aria-label="Aumentar" ${i.qty >= max ? 'disabled' : ''}>+</button>
+              </div>
+              ${i.qty > max ? `<p class="error">Só ${Math.max(0, max)} em estoque</p>` : i.qty >= max ? '<p class="hint">Máximo em estoque</p>' : ''}
+            </div>
+            <div class="unit"><strong>${brl(price)}</strong>10x de ${brl(price / 10)}</div>
+            <div class="sub"><strong>${brl(price * i.qty)}</strong><button type="button" class="link-btn" style="text-decoration:underline;margin-top:8px" data-act="rm" data-key="${i.key}">Remover</button></div>
+          </div>`;
+      }).join('');
+      renderSummary();
+    }
+
+    function renderSummary() {
+      document.getElementById('sum').innerHTML = summaryHtml();
+      const p = Prefs.get();
+      const r = p.cep ? consultarCep(p.cep) : null;
+      document.getElementById('frete-txt').innerHTML = r
+        ? `CEP ${r.cep}: <strong>${brl(r.valor)}</strong> • ${r.prazo}`
+        : `Frete estimado: <strong>${brl(FRETE_PADRAO)}</strong>`;
+      const t = totals();
+      document.getElementById('coupon-box').innerHTML = t.cupom
+        ? `<div class="coupon-ok"><span>${icon('tag', 'icon sm')} ${t.cupom.code}: ${t.cupom.desc}</span><button type="button" class="link-btn" id="rm-coupon">Remover</button></div>`
+        : `<div class="coupon"><input class="input" id="cupom" placeholder="Ex.: CEM10" autocomplete="off"><button class="btn btn-blue">Aplicar</button></div>`;
+    }
+
+    document.getElementById('items').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      let items = Cart.items();
+      const it = items.find((i) => i.key === b.dataset.key);
+      const act = b.dataset.act;
+      if (act === 'inc') it.qty = Math.min(it.qty + 1, stockOf(productById(it.id)) - Cart.qtyOf(it.id, it.key));
+      if (act === 'dec') it.qty = Math.max(1, it.qty - 1);
+      if (act === 'rm' || act === 'save') items = items.filter((i) => i !== it);
+      if (act === 'save' && !Favs.has(it.id)) Favs.toggle(it.id);
+      Cart.set(items);
+      render();
+      if (act === 'rm') toast('Produto removido do carrinho');
+      if (act === 'save') toast('Produto movido para os favoritos');
+    });
+
+    document.getElementById('coupon-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('cupom').value.trim().toUpperCase();
+      const info = cupomInfo(code, Cart.subtotal());
+      document.getElementById('coupon-error').textContent = code ? info.erro ?? '' : 'Digite um cupom.';
+      if (code && !info.erro) { Prefs.set({ cupom: code }); renderSummary(); toast(`Cupom ${code} aplicado!`); }
+    });
+    document.getElementById('coupon-form').addEventListener('click', (e) => {
+      if (e.target.id !== 'rm-coupon') return;
+      Prefs.set({ cupom: null });
+      renderSummary();
+    });
+
+    const prefs = Prefs.get();
+    function bindRadios(name, onChange) {
+      document.querySelectorAll(`input[name=${name}]`).forEach((r) => {
+        r.checked = r.value === prefs[name];
+        r.addEventListener('change', () => { Prefs.set({ [name]: r.value }); onChange(r.value); renderSummary(); });
+      });
+      onChange(prefs[name]);
+    }
+
+    const cep = document.getElementById('cep');
+    maskCep(cep);
+    if (prefs.cep) cep.value = prefs.cep;
+    document.getElementById('cep-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const r = consultarCep(cep.value);
+      document.getElementById('cep-error').textContent = r ? '' : 'Informe um CEP válido com 8 dígitos.';
+      if (r) { Prefs.set({ cep: r.cep }); renderSummary(); }
+    });
+
+    render();
+    if (Cart.count()) {
+      bindRadios('entrega', (v) => {
+        document.getElementById('cep-form').hidden = v !== 'casa';
+        document.getElementById('loja-txt').hidden = v !== 'loja';
+      });
+      bindRadios('pagamento', (v) => {
+        const [a, b] = PAG_INFO[v];
+        document.getElementById('pag-info').innerHTML = `<strong style="font-weight:600">${a}</strong><br><span class="muted">${b}</span>`;
+      });
+    }
+  </script>
+</body>
+</html>

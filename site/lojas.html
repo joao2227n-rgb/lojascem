@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Nossas lojas - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="lojas">
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo">
+    <nav class="breadcrumb" aria-label="Trilha"><a href="index.html">Início</a> &nbsp;/&nbsp; <span aria-current="page">Nossas lojas</span></nav>
+    <h1>Encontre uma loja perto de você</h1>
+    <p class="subtitle" style="color:var(--muted);font-size:1.6rem">Consulte unidades e opções de retirada na proposta.</p>
+
+    <form class="store-search" id="search">
+      <div class="field">
+        <label for="uf">Estado</label>
+        <select class="input" id="uf"><option value="">Todos os estados</option></select>
+      </div>
+      <div class="field">
+        <label for="cidade">Cidade</label>
+        <select class="input" id="cidade"><option value="">Todas as cidades</option></select>
+      </div>
+      <button class="btn btn-primary btn-lg">Buscar lojas <span data-icon="search"></span></button>
+      <button type="button" class="btn btn-outline btn-lg" id="near"><span data-icon="pin"></span> Perto de mim</button>
+    </form>
+
+    <div class="stores">
+      <div>
+        <p class="muted" id="count" aria-live="polite" style="margin:0 0 10px"></p>
+        <div class="store-list" id="list"></div>
+      </div>
+      <div class="map-col">
+        <div class="map" id="map" role="region" aria-label="Mapa das lojas"></div>
+        <div class="notice"><span data-icon="info"></span>Endereços, horários e unidades fictícios para demonstração. Mapa © OpenStreetMap.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    fillIcons();
+
+    const uf = document.getElementById('uf');
+    const cidade = document.getElementById('cidade');
+    uf.innerHTML += Object.entries(UFS).map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+    function fillCities() {
+      const cities = [...new Set(STORES.filter((s) => !uf.value || s.uf === uf.value).map((s) => s.cidade))].sort();
+      cidade.innerHTML = '<option value="">Todas as cidades</option>' + cities.map((c) => `<option>${c}</option>`).join('');
+    }
+    uf.addEventListener('change', fillCities);
+    fillCities();
+
+    // Mapa interativo (Leaflet + OpenStreetMap). Sem internet, a lista continua funcionando.
+    let map = null;
+    const markers = {};
+    if (window.L) {
+      map = L.map('map', { scrollWheelZoom: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+      STORES.forEach((s, i) => {
+        markers[s.id] = L.marker([s.lat, s.lng], { title: s.nome }).addTo(map)
+          .bindPopup(`<strong>${s.nome}</strong><br>${s.end}<br>${s.cidade} / ${s.uf}`);
+        markers[s.id].on('click', () => highlight(s.id));
+      });
+    } else {
+      document.getElementById('map').innerHTML = '<p class="muted" style="padding:20px">Mapa indisponível sem conexão.</p>';
+    }
+
+    let current = STORES;
+    let distances = {};
+
+    function highlight(id) {
+      document.querySelectorAll('.store').forEach((el) => el.classList.toggle('active', el.dataset.id === id));
+      document.querySelector(`.store[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function render() {
+      const sel = Prefs.get().loja;
+      document.getElementById('count').textContent = plural(current.length, 'loja encontrada', 'lojas encontradas');
+      document.getElementById('list').innerHTML = current.length ? current.map((s, i) => `
+        <article class="card store${s.id === sel ? ' selected' : ''}" data-id="${s.id}">
+          <img src="img/loja-${(STORES.indexOf(s) % 2) + 1}.webp" alt="Fachada da ${s.nome}" loading="lazy">
+          <div>
+            <h2>${s.nome}</h2>
+            <p>${icon('pin')} ${s.end} • ${s.cidade} / ${s.uf}${distances[s.id] ? ` <span class="dist">${distances[s.id].toFixed(0)} km</span>` : ''}</p>
+            <p>${icon('clock')} Seg. a sex., 9h às 18h • Horário ilustrativo</p>
+            <div class="actions">
+              <button type="button" class="btn btn-primary" data-ver="${s.id}">Ver no mapa ${icon('chevronRight')}</button>
+              <button type="button" class="btn btn-outline" data-sel="${s.id}" aria-pressed="${s.id === sel}">${s.id === sel ? `${icon('check')} Selecionada` : 'Selecionar para retirada'}</button>
+            </div>
+          </div>
+        </article>`).join('')
+        : `<div class="card empty-state">${icon('store')}<h2>Nenhuma loja encontrada</h2><p>Tente outro estado ou cidade.</p></div>`;
+      if (map && current.length) map.fitBounds(L.latLngBounds(current.map((s) => [s.lat, s.lng])), { padding: [40, 40], maxZoom: 13 });
+    }
+
+    document.getElementById('search').addEventListener('submit', (e) => {
+      e.preventDefault();
+      distances = {};
+      current = STORES.filter((s) => (!uf.value || s.uf === uf.value) && (!cidade.value || s.cidade === cidade.value));
+      render();
+    });
+
+    // Geolocalização: ordena lojas pela distância (fórmula de Haversine).
+    document.getElementById('near').addEventListener('click', () => {
+      if (!navigator.geolocation) return toast('Seu navegador não permite localização.');
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        const rad = (d) => (d * Math.PI) / 180;
+        distances = Object.fromEntries(STORES.map((s) => {
+          const dLat = rad(s.lat - coords.latitude);
+          const dLng = rad(s.lng - coords.longitude);
+          const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(coords.latitude)) * Math.cos(rad(s.lat)) * Math.sin(dLng / 2) ** 2;
+          return [s.id, 6371 * 2 * Math.asin(Math.sqrt(a))];
+        }));
+        current = [...STORES].sort((a, b) => distances[a.id] - distances[b.id]).slice(0, 4);
+        uf.value = '';
+        fillCities();
+        render();
+      }, () => toast('Não foi possível obter sua localização.'));
+    });
+
+    document.getElementById('list').addEventListener('click', (e) => {
+      const sel = e.target.closest('[data-sel]');
+      const ver = e.target.closest('[data-ver]');
+      if (sel) {
+        const s = STORES.find((x) => x.id === sel.dataset.sel);
+        Prefs.set({ loja: s.id, entrega: 'loja' });
+        render();
+        toast(`${s.nome} selecionada para retirada`);
+      }
+      if (ver && map) {
+        const s = STORES.find((x) => x.id === ver.dataset.ver);
+        map.setView([s.lat, s.lng], 14);
+        markers[s.id].openPopup();
+        highlight(s.id);
+        document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

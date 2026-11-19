@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Produtos - Lojas CEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <main class="page container" id="conteudo">
+    <nav class="breadcrumb" aria-label="Trilha" id="crumb"></nav>
+    <div class="cat-head">
+      <div>
+        <h1 id="title"></h1>
+        <p class="muted" id="count" style="margin:4px 0 0;font-size:1.2rem" aria-live="polite"></p>
+      </div>
+      <label class="sort">Ordenar por:
+        <select class="input" id="sort">
+          <option value="relevancia">Relevância</option>
+          <option value="menor">Menor preço</option>
+          <option value="maior">Maior preço</option>
+          <option value="desconto">Maior desconto</option>
+          <option value="avaliacao">Mais bem avaliados</option>
+          <option value="nome">Nome (A-Z)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="cat-layout">
+      <form class="panel filters" id="filters">
+        <h2>Filtrar por</h2>
+        <div id="fieldsets"></div>
+        <button type="reset" class="btn btn-outline btn-block" style="margin-top:8px">Limpar filtros</button>
+      </form>
+
+      <div>
+        <div class="chips" id="chips"></div>
+        <div class="cat-grid" id="grid"></div>
+        <nav class="pagination" id="pages" aria-label="Paginação"></nav>
+      </div>
+    </div>
+  </main>
+
+  <footer id="site-footer" class="site-footer"></footer>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const PER_PAGE = 8;
+    const PRECOS = { 'ate-1000': ['Até R$ 1.000', 0, 1000], '1000-3000': ['De R$ 1.000 a R$ 3.000', 1000, 3000], 'acima-3000': ['Acima de R$ 3.000', 3000, Infinity] };
+    const url = new URLSearchParams(location.search);
+    const c = url.get('c');
+    const q = (url.get('q') || '').trim();
+    const dept = DEPARTMENTS[c];
+    document.body.dataset.page = dept ? c : 'todos';
+    renderHeader();
+
+    let base = PRODUCTS;
+    let title = 'Todos os departamentos';
+    if (dept) { base = base.filter((p) => p.cat === c); title = dept.nome; }
+    if (c === 'ofertas') { base = base.filter((p) => p.de); title = 'Ofertas'; }
+    if (q) {
+      const terms = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/\s+/);
+      const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      base = base.filter((p) => terms.every((t) => norm(`${p.nome} ${p.sub} ${p.marca} ${p.detalhe} ${p.cod}`).includes(t)));
+      title = `Resultados para "${q}"`;
+    }
+    document.title = `${title} - Lojas CEM`;
+    document.getElementById('title').textContent = title;
+    document.getElementById('crumb').innerHTML = `<a href="index.html">Início</a> &nbsp;/&nbsp; <span aria-current="page"></span>`;
+    document.querySelector('#crumb span').textContent = title;
+
+    const voltsOf = (p) => (p.volts.includes('Bivolt') ? ['127 V', '220 V'] : p.volts);
+    const groups = [
+      ['sub', 'Categoria', [...new Set(base.map((p) => p.sub))].map((s) => [s, s])],
+      ['marca', 'Marca', [...new Set(base.map((p) => p.marca))].sort().map((m) => [m, m])],
+      ['preco', 'Faixa de preço', Object.entries(PRECOS).filter(([, [, min, max]]) => base.some((p) => p.preco >= min && p.preco < max)).map(([k, [l]]) => [k, l])],
+      ['volt', 'Voltagem', ['127 V', '220 V'].filter((v) => base.some((p) => voltsOf(p).includes(v))).map((v) => [v, v])],
+      ['estoque', 'Disponibilidade', [['sim', 'Somente em estoque']]],
+    ].filter(([, , opts]) => opts.length);
+
+    document.getElementById('fieldsets').innerHTML = groups.map(([name, label, opts]) => `
+      <fieldset>
+        <legend><button type="button" aria-expanded="true">${label} ${icon('chevronUp')}</button></legend>
+        <div class="opts">${opts.map(([v, l]) => `<label class="check"><input type="checkbox" name="${name}" value="${escapeHtml(v)}"> ${escapeHtml(l)}</label>`).join('')}</div>
+      </fieldset>`).join('');
+
+    document.querySelectorAll('.filters legend button').forEach((b) => b.addEventListener('click', () => {
+      const fs = b.closest('fieldset');
+      fs.classList.toggle('closed');
+      b.setAttribute('aria-expanded', !fs.classList.contains('closed'));
+    }));
+
+    const form = document.getElementById('filters');
+    const sort = document.getElementById('sort');
+    const names = groups.map(([n]) => n);
+
+    // Estado inicial vem da URL (filtros compartilháveis).
+    names.forEach((n) => {
+      const vals = (url.get(n) || '').split(',').filter(Boolean);
+      form.querySelectorAll(`[name="${n}"]`).forEach((i) => { i.checked = vals.includes(i.value); });
+    });
+    if (url.get('ordem')) sort.value = url.get('ordem');
+    let page = Number(url.get('p')) || 1;
+
+    function syncUrl(sel) {
+      const u = new URLSearchParams();
+      if (c) u.set('c', c);
+      if (q) u.set('q', q);
+      names.forEach((n) => { if (sel[n].length) u.set(n, sel[n].join(',')); });
+      if (sort.value !== 'relevancia') u.set('ordem', sort.value);
+      if (page > 1) u.set('p', page);
+      history.replaceState(null, '', `?${u}`);
+    }
+
+    function render() {
+      const data = new FormData(form);
+      const sel = Object.fromEntries(names.map((n) => [n, data.getAll(n)]));
+      let list = base.filter((p) =>
+        (!sel.sub?.length || sel.sub.includes(p.sub)) &&
+        (!sel.marca?.length || sel.marca.includes(p.marca)) &&
+        (!sel.preco?.length || sel.preco.some((k) => p.preco >= PRECOS[k][1] && p.preco < PRECOS[k][2])) &&
+        (!sel.volt?.length || voltsOf(p).some((v) => sel.volt.includes(v))) &&
+        (!sel.estoque?.length || stockOf(p) > 0));
+      const sorters = {
+        menor: (a, b) => a.preco - b.preco,
+        maior: (a, b) => b.preco - a.preco,
+        desconto: (a, b) => discountPct(b) - discountPct(a),
+        avaliacao: (a, b) => Reviews.summary(b.id).avg - Reviews.summary(a.id).avg,
+        nome: (a, b) => a.nome.localeCompare(b.nome),
+      };
+      if (sorters[sort.value]) list = [...list].sort(sorters[sort.value]);
+
+      const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+      page = Math.min(page, pages);
+      syncUrl(sel);
+
+      document.getElementById('count').textContent = plural(list.length, 'produto encontrado', 'produtos encontrados');
+      document.getElementById('grid').innerHTML = list.length
+        ? list.slice((page - 1) * PER_PAGE, page * PER_PAGE).map(productCard).join('')
+        : `<div class="card empty-state" style="grid-column:1/-1">${icon('search')}<h2>Nenhum produto encontrado</h2><p>Tente remover algum filtro ou buscar outro termo.</p><a class="btn btn-primary" href="categoria.html">Ver todos os produtos</a></div>`;
+
+      const labels = Object.fromEntries(groups.flatMap(([n, , opts]) => opts.map(([v, l]) => [`${n}:${v}`, l])));
+      document.getElementById('chips').innerHTML = names.flatMap((n) => sel[n].map((v) =>
+        `<button type="button" class="chip" data-n="${n}" data-v="${escapeHtml(v)}" aria-label="Remover filtro ${escapeHtml(labels[`${n}:${v}`])}">${escapeHtml(labels[`${n}:${v}`])} ${icon('x')}</button>`)).join('');
+
+      document.getElementById('pages').innerHTML = pages > 1 ? `
+        <button type="button" data-p="${page - 1}" ${page === 1 ? 'disabled' : ''} aria-label="Página anterior">${icon('chevronLeft', 'icon sm')}</button>
+        ${Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" ${i + 1 === page ? 'aria-current="page"' : ''}>${i + 1}</button>`).join('')}
+        <button type="button" data-p="${page + 1}" ${page === pages ? 'disabled' : ''} aria-label="Próxima página">${icon('chevronRight', 'icon sm')}</button>` : '';
+    }
+
+    form.addEventListener('change', () => { page = 1; render(); });
+    form.addEventListener('reset', () => setTimeout(() => { page = 1; render(); }));
+    sort.addEventListener('change', render);
+    document.getElementById('chips').addEventListener('click', (e) => {
+      const b = e.target.closest('.chip');
+      if (!b) return;
+      form.querySelector(`[name="${b.dataset.n}"][value="${CSS.escape(b.dataset.v)}"]`).checked = false;
+      page = 1;
+      render();
+    });
+    document.getElementById('pages').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-p]');
+      if (!b || b.disabled) return;
+      page = Number(b.dataset.p);
+      render();
+      document.getElementById('title').scrollIntoView({ behavior: 'smooth' });
+    });
+    render();
+  </script>
+</body>
+</html>
