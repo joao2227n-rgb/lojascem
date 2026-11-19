@@ -710,7 +710,7 @@ table.parcelas td { padding: 10px 18px; border-bottom: 1px solid var(--border); 
   .topbar .container { min-height: 64px; }
   .logo img { height: 42px; }
   .menu-toggle { display: block; }
-  .topnav, .catnav { display: none; }
+  .topbar .topnav, .catnav { display: none; }
   .menu-open .catnav { display: block; }
   .catnav ul { flex-direction: column; align-items: stretch; padding: 8px 0; }
   .catnav li { border-left: 0; justify-content: flex-start; }
