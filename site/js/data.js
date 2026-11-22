@@ -29,7 +29,7 @@ const PRODUCTS = [
     preco: 999, de: 1199, cores: [INOX], volts: ['Bivolt'], estoque: 15, detalhe: 'Acendimento automático',
     desc: 'Fogão de piso com 5 queimadores, acendimento automático e forno com visor amplo.',
     specs: [['Bocas', '5'], ['Acendimento', 'Automático'], ['Forno', '90 L'], ['Dimensões ilustrativas', '90 × 76 × 65 cm']] },
-  { id: 'fogao-4', nome: 'Fogão 4 bocas', cat: 'eletro', sub: 'Fogões', marca: 'Chama', cod: 'CEM-FG-004',
+  { id: 'fogao-4bocas', nome: 'Fogão 4 bocas', cat: 'eletro', sub: 'Fogões', marca: 'Chama', cod: 'CEM-FG-004',
     preco: 649, cores: [{ ...BRANCO, delta: 0 }, { ...PRETO, delta: 50 }], volts: ['Bivolt'], estoque: 25, detalhe: 'Mesa de vidro',
     desc: 'Fogão 4 bocas com mesa de vidro temperado, forno autolimpante e acendimento automático.',
     specs: [['Bocas', '4'], ['Mesa', 'Vidro'], ['Forno', '60 L'], ['Dimensões ilustrativas', '85 × 50 × 60 cm']] },

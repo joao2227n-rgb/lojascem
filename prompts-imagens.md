@@ -17,7 +17,7 @@ São 4 imagens por produto. Use o mesmo gerador (ChatGPT, Gemini etc.) para mant
 - [Geladeira Inverse 480 L](#geladeira-inverse) — `geladeira-inverse`
 - [Geladeira 1 Porta 300 L](#geladeira-1porta) — `geladeira-1porta`
 - [Fogão 5 bocas](#fogao) — `fogao`
-- [Fogão 4 bocas](#fogao-4) — `fogao-4`
+- [Fogão 4 bocas](#fogao-4bocas) — `fogao-4bocas`
 - [Cooktop a Gás 5 Bocas](#cooktop) — `cooktop`
 - [Lavadora 12 kg](#lavadora) — `lavadora`
 - [Lava e Seca 11 kg](#lava-seca) — `lava-seca`
@@ -136,25 +136,25 @@ Usando a imagem anexada como referência, gere outra foto do MESMO produto (mesm
 Usando a imagem anexada como referência, gere outra foto do MESMO produto (mesma cor, modelo e acabamento). Fotografia realista de e-commerce, formato quadrado 1:1, alta nitidez, sem texto, sem logotipos, sem marcas, sem pessoas. Cena: cozinha com azulejos claros, decoração de casa brasileira moderna, iluminação natural, produto em destaque.
 ```
 
-<a id="fogao-4"></a>
+<a id="fogao-4bocas"></a>
 ## Fogão 4 bocas
 
-**1. Principal — `fogao-4.webp`**
+**1. Principal — `fogao-4bocas.webp`**
 ```
 Fotografia de produto realista para e-commerce, fundo branco puro, iluminação de estúdio suave, sombra leve no chão, alta nitidez, formato quadrado 1:1, produto inteiro centralizado. Sem texto, sem logotipos, sem marcas, sem pessoas. Produto: fogão de piso de 4 bocas, branco, mesa de vidro preto, forno com visor de vidro. Vista em 3/4 levemente de frente.
 ```
 
-**2. Lateral — `fogao-4-2.webp`** (anexe a foto principal)
+**2. Lateral — `fogao-4bocas-2.webp`** (anexe a foto principal)
 ```
 Usando a imagem anexada como referência, gere outra foto do MESMO produto (mesma cor, modelo e acabamento). Fotografia realista de e-commerce, formato quadrado 1:1, alta nitidez, sem texto, sem logotipos, sem marcas, sem pessoas. Fundo branco puro, iluminação de estúdio suave. Ângulo: vista lateral do fogão.
 ```
 
-**3. Detalhe — `fogao-4-3.webp`** (anexe a foto principal)
+**3. Detalhe — `fogao-4bocas-3.webp`** (anexe a foto principal)
 ```
 Usando a imagem anexada como referência, gere outra foto do MESMO produto (mesma cor, modelo e acabamento). Fotografia realista de e-commerce, formato quadrado 1:1, alta nitidez, sem texto, sem logotipos, sem marcas, sem pessoas. Fundo branco puro, iluminação de estúdio suave. Ângulo: forno aberto mostrando as grades internas.
 ```
 
-**4. Ambientado — `fogao-4-4.webp`** (anexe a foto principal)
+**4. Ambientado — `fogao-4bocas-4.webp`** (anexe a foto principal)
 ```
 Usando a imagem anexada como referência, gere outra foto do MESMO produto (mesma cor, modelo e acabamento). Fotografia realista de e-commerce, formato quadrado 1:1, alta nitidez, sem texto, sem logotipos, sem marcas, sem pessoas. Cena: cozinha simples e clara, decoração de casa brasileira moderna, iluminação natural, produto em destaque.
 ```
